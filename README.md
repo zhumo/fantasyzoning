@@ -9,5 +9,9 @@ The application is hosted at [TODO INSERT URL HERE]. Please use it on a laptop s
 Users will be able to enter upzoning criteria on the left side of the screen and the effect (expected number of units built) will be displayed numerically on the bottom and visually on the map, where the more intense the color, the higher the height increase.
 
 # Notes
+- The map begins with the Family Zoning Plan applied.
+- The applied version does not include the November 2025 amendments added in the Board of Supervisors Land Use Committee.
 - When two upzoning criteria collide (e.g. one parcel has two different max heights allowed, the taller height prevails).
 
+# Attribution
+This app is derived from https://github.com/sdamerdji/rezoner
