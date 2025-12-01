@@ -1,0 +1,9 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {"type":"Feature","properties":{"stop_url":"","stop_lat":"37.77639","stop_desc":"","location_t":"0","stop_code":"70011","stop_lon":"-122.394992","zone_id":"1","stop_name":"San Francisco Caltrain","platform_c":"NB","parent_sta":"ctsf","stop_id":"70011"},"geometry":{"type":"Point","coordinates":[-122.39499200000013,37.77639000000004]}},
+    {"type":"Feature","properties":{"stop_url":"","stop_lat":"37.776348","stop_desc":"","location_t":"0","stop_code":"70012","stop_lon":"-122.394935","zone_id":"1","stop_name":"San Francisco Caltrain","platform_c":"SB","parent_sta":"ctsf","stop_id":"70012"},"geometry":{"type":"Point","coordinates":[-122.39493500000013,37.77634800000004]}},
+    {"type":"Feature","properties":{"stop_url":"","stop_lat":"37.757599","stop_desc":"","location_t":"0","stop_code":"70021","stop_lon":"-122.39188","zone_id":"1","stop_name":"22nd St Caltrain","platform_c":"NB","parent_sta":"ct22","stop_id":"70021"},"geometry":{"type":"Point","coordinates":[-122.39188000000011,37.757599000000035]}},
+    {"type":"Feature","properties":{"stop_url":"","stop_lat":"37.757583","stop_desc":"","location_t":"0","stop_code":"70022","stop_lon":"-122.392404","zone_id":"1","stop_name":"22nd St Caltrain","platform_c":"SB","parent_sta":"ct22","stop_id":"70022"},"geometry":{"type":"Point","coordinates":[-122.39240400000013,37.75758300000003]}}
+  ]
+}

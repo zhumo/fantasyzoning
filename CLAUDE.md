@@ -10,7 +10,7 @@ See @README.md
 
 ### Local Development
 
-From the `web-app` directory:
+From the `web` directory:
 
 ```bash
 npm install
@@ -44,13 +44,13 @@ Output will be in `dist/` directory, ready to deploy to any static hosting servi
 ### Data Flow
 
 1. **Source data**: `data/` directory contains raw geometry and attribute files
-2. **Served data**: `web-app/public/data/` contains files served to the frontend
+2. **Served data**: `web/public/data/` contains files served to the frontend
 3. **Frontend**: Vue.js loads geometry and attributes from `/data/`, joins them client-side by mapblklot, and renders in Mapbox
 
-### App Structure (`web-app/`)
+### App Structure (`web/`)
 
 ```
-web-app/
+web/
 ├── src/
 │   ├── App.vue              - Root component (title: "Rezoner")
 │   ├── components/
@@ -87,7 +87,7 @@ The app currently displays:
 - `public-parcels.geojson` (5.6MB) - Public parcels subset
 - Transit files: `transit-bart.geojson`, `transit-caltrain.geojson`
 
-**Served data (`web-app/public/data/`):**
+**Served data (`web/public/data/`):**
 - Same structure as source data, served at `/data/` path
 
 ## Parcel Data Structure
@@ -140,9 +140,9 @@ The following features are planned but not yet built:
 ## Development Workflow
 
 1. **Update source data**: Place new files in `data/` directory
-2. **Copy to public**: Copy updated files to `web-app/public/data/`
-3. **Test in dev mode**: Run `npm run dev` in `web-app/`
-4. **Build for production**: Run `npm run build` in `web-app/`
+2. **Copy to public**: Copy updated files to `web/public/data/`
+3. **Test in dev mode**: Run `npm run dev` in `web/`
+4. **Build for production**: Run `npm run build` in `web/`
 5. **Deploy**: Upload `dist/` directory to static hosting
 
 ## Geospatial Notes
