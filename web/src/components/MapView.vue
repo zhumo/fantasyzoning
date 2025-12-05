@@ -67,7 +67,6 @@ async function loadDataset() {
   if (map.value.getLayer('data-line')) map.value.removeLayer('data-line');
   if (map.value.getLayer('data-point')) map.value.removeLayer('data-point');
   if (map.value.getLayer('public-fill')) map.value.removeLayer('public-fill');
-  if (map.value.getLayer('public-line')) map.value.removeLayer('public-line');
   if (map.value.getLayer('transit-bart')) map.value.removeLayer('transit-bart');
   if (map.value.getLayer('transit-caltrain')) map.value.removeLayer('transit-caltrain');
   if (map.value.getLayer('highlight-fill')) map.value.removeLayer('highlight-fill');
@@ -124,8 +123,18 @@ async function loadDataset() {
       id: 'data-fill',
       type: 'fill',
       source: 'data',
+      filter: ['!=', ['get', 'current_height_ft'], ''],
       paint: {
-        'fill-color': '#fff',
+        'fill-color': [
+          'step',
+          ['to-number', ['coalesce', ['get', 'fzp_height_ft'], ['get', 'current_height_ft']], 0],
+          '#ffffff',
+          45, '#c7e9b4',
+          65, '#7fcdbb',
+          85, '#41b6c4',
+          105, '#2c7fb8',
+          150, '#253494'
+        ],
         'fill-opacity': 1
       }
     });
@@ -134,6 +143,7 @@ async function loadDataset() {
       id: 'data-line',
       type: 'line',
       source: 'data',
+      filter: ['!=', ['get', 'current_height_ft'], ''],
       paint: { 'line-color': '#000', 'line-width': 0.5, 'line-opacity': 1 }
     });
 
@@ -147,16 +157,9 @@ async function loadDataset() {
       type: 'fill',
       source: 'public-data',
       paint: {
-        'fill-color': '#888',
-        'fill-opacity': 0.6
+        'fill-color': 'transparent',
+        'fill-opacity': 0
       }
-    });
-
-    map.value.addLayer({
-      id: 'public-line',
-      type: 'line',
-      source: 'public-data',
-      paint: { 'line-color': '#000', 'line-width': 0.5, 'line-opacity': 0.5 }
     });
 
     const bartResponse = await fetch('/data/transit-bart.geojson');
@@ -385,8 +388,45 @@ onMounted(() => {
               <td class="key"># Units</td>
               <td class="value">{{ Array(hoveredParcel.blklots).length }}</td>
             </tr>
+            <tr v-if="hoveredParcel.current_height_ft">
+              <td class="key">Current Height</td>
+              <td class="value">{{ hoveredParcel.current_height_ft }} ft</td>
+            </tr>
+            <tr v-if="hoveredParcel.fzp_height_ft">
+              <td class="key">Proposed Height</td>
+              <td class="value">{{ hoveredParcel.fzp_height_ft }} ft</td>
+            </tr>
           </tbody>
         </table>
+      </div>
+      <div class="legend">
+        <div class="legend-title">Height (ft)</div>
+        <div class="legend-items">
+          <div class="legend-item">
+            <span class="legend-color" style="background: #ffffff; border: 1px solid #ccc;"></span>
+            <span>0-45</span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-color" style="background: #c7e9b4;"></span>
+            <span>45-65</span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-color" style="background: #7fcdbb;"></span>
+            <span>65-85</span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-color" style="background: #41b6c4;"></span>
+            <span>85-105</span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-color" style="background: #2c7fb8;"></span>
+            <span>105-150</span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-color" style="background: #253494;"></span>
+            <span>150+</span>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -558,5 +598,42 @@ onMounted(() => {
 
 .tooltip .value {
   color: #fff;
+}
+
+.legend {
+  position: absolute;
+  bottom: 30px;
+  right: 10px;
+  background: rgba(255, 255, 255, 0.95);
+  padding: 10px 14px;
+  border-radius: 4px;
+  font-size: 12px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+  z-index: 5;
+}
+
+.legend-title {
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: #333;
+}
+
+.legend-items {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #333;
+}
+
+.legend-color {
+  width: 20px;
+  height: 14px;
+  border: 1px solid #999;
 }
 </style>
