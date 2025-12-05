@@ -9,8 +9,8 @@ const currentIndex = ref(0);
 const featureCount = ref(0);
 const properties = ref([]);
 const loading = ref(false);
-const selectedParcel = ref(null);
 const hoveredParcel = ref(null);
+const hoveredFeature = ref(null);
 const tooltipPosition = ref({ x: 0, y: 0 });
 
 const datasets = [
@@ -286,21 +286,11 @@ function setupInteractions(geojson) {
 
   const handleMouseMove = (e) => {
     if (e.features.length > 0) {
-      map.value.getCanvas().style.cursor = 'pointer';
-      hoveredParcel.value = e.features[0].properties;
-      tooltipPosition.value = { x: e.point.x, y: e.point.y };
-    }
-  };
-
-  const handleMouseLeave = () => {
-    map.value.getCanvas().style.cursor = '';
-    hoveredParcel.value = null;
-  };
-
-  const handleClick = (e) => {
-    if (e.features.length > 0) {
       const feature = e.features[0];
-      selectedParcel.value = feature.properties;
+      map.value.getCanvas().style.cursor = 'pointer';
+      hoveredParcel.value = feature.properties;
+      hoveredFeature.value = feature;
+      tooltipPosition.value = { x: e.point.x, y: e.point.y };
 
       map.value.getSource('highlight').setData({
         type: 'FeatureCollection',
@@ -309,18 +299,20 @@ function setupInteractions(geojson) {
     }
   };
 
+  const handleMouseLeave = () => {
+    map.value.getCanvas().style.cursor = '';
+    hoveredParcel.value = null;
+    hoveredFeature.value = null;
+
+    map.value.getSource('highlight').setData({
+      type: 'FeatureCollection',
+      features: []
+    });
+  };
+
   layers.forEach(layerId => {
     map.value.on('mousemove', layerId, handleMouseMove);
     map.value.on('mouseleave', layerId, handleMouseLeave);
-    map.value.on('click', layerId, handleClick);
-  });
-
-  const randomIndex = Math.floor(Math.random() * geojson.features.length);
-  const randomFeature = geojson.features[randomIndex];
-  selectedParcel.value = randomFeature.properties;
-  map.value.getSource('highlight').setData({
-    type: 'FeatureCollection',
-    features: [randomFeature]
   });
 }
 
@@ -359,11 +351,11 @@ onMounted(() => {
   map.value = new mapboxgl.Map({
     container: mapContainer.value,
     style: 'mapbox://styles/mapbox/light-v11',
-    center: [-122.4194, 37.7749],
+    center: [-122.4862, 37.7694],
     zoom: 12,
-    minZoom: 10,
+    minZoom: 12,
     maxZoom: 18,
-    maxBounds: [[-122.55, 37.65], [-122.28, 37.85]]
+    maxBounds: [[-122.48, 37.72], [-122.40, 37.80]]
   });
 
   map.value.addControl(new mapboxgl.NavigationControl(), 'top-right');
@@ -374,45 +366,41 @@ onMounted(() => {
 <template>
   <div class="container">
     <div class="sidebar">
-      <div class="selected-parcel" v-if="selectedParcel">
-        <h3>Selected Parcel</h3>
-        <table>
-          <tbody>
-            <tr v-if="selectedParcel.from_address_num || selectedParcel.street_name">
-              <td class="key">Address</td>
-              <td class="value">{{ getParcelAddress(selectedParcel) }}</td>
-            </tr>
-            <tr v-if="selectedParcel.analysis_neighborhood">
-              <td class="key">Neighborhood</td>
-              <td class="value">{{ selectedParcel.analysis_neighborhood }}</td>
-            </tr>
-            <tr v-if="selectedParcel.zoning_code">
-              <td class="key">Zoning Code</td>
-              <td class="value">{{ selectedParcel.zoning_code }}</td>
-            </tr>
-            <tr v-if="selectedParcel.zoning_district">
-              <td class="key">Zoning District</td>
-              <td class="value">{{ selectedParcel.zoning_district }}</td>
-            </tr>
-            <tr>
-              <td class="key">Supervisor</td>
-              <td class="value">{{ selectedParcel.supname }} (D{{ selectedParcel.supervisor_district }})</td>
-            </tr>
-            <tr v-if="selectedParcel.mapblklot">
-              <td class="key">Parcel ID</td>
-              <td class="value">{{ selectedParcel.mapblklot }}</td>
-            </tr>
-            <tr v-if="selectedParcel.blklots">
-              <td class="key"># Units</td>
-              <td class="value">{{ Array(selectedParcel.blklots).length }}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
     </div>
     <div ref="mapContainer" class="map-container">
       <div v-if="hoveredParcel" class="tooltip" :style="{ left: tooltipPosition.x + 15 + 'px', top: tooltipPosition.y + 15 + 'px' }">
-        {{ getParcelAddress(hoveredParcel) }}
+        <table>
+          <tbody>
+            <tr v-if="hoveredParcel.from_address_num || hoveredParcel.street_name">
+              <td class="key">Address</td>
+              <td class="value">{{ getParcelAddress(hoveredParcel) }}</td>
+            </tr>
+            <tr v-if="hoveredParcel.analysis_neighborhood">
+              <td class="key">Neighborhood</td>
+              <td class="value">{{ hoveredParcel.analysis_neighborhood }}</td>
+            </tr>
+            <tr v-if="hoveredParcel.zoning_code">
+              <td class="key">Zoning Code</td>
+              <td class="value">{{ hoveredParcel.zoning_code }}</td>
+            </tr>
+            <tr v-if="hoveredParcel.zoning_district">
+              <td class="key">Zoning District</td>
+              <td class="value">{{ hoveredParcel.zoning_district }}</td>
+            </tr>
+            <tr>
+              <td class="key">Supervisor</td>
+              <td class="value">{{ hoveredParcel.supname }} (D{{ hoveredParcel.supervisor_district }})</td>
+            </tr>
+            <tr v-if="hoveredParcel.mapblklot">
+              <td class="key">Parcel ID</td>
+              <td class="value">{{ hoveredParcel.mapblklot }}</td>
+            </tr>
+            <tr v-if="hoveredParcel.blklots">
+              <td class="key"># Units</td>
+              <td class="value">{{ Array(hoveredParcel.blklots).length }}</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
   </div>
@@ -520,48 +508,32 @@ onMounted(() => {
 
 .tooltip {
   position: absolute;
-  top: 10px;
-  left: 10px;
-  background: rgba(0, 0, 0, 0.8);
+  background: rgba(0, 0, 0, 0.9);
   color: #fff;
-  padding: 8px 12px;
+  padding: 10px 14px;
   border-radius: 4px;
-  font-size: 14px;
+  font-size: 13px;
   pointer-events: none;
   z-index: 10;
+  max-width: 300px;
 }
 
-.selected-parcel {
-  margin-top: 16px;
-  padding-top: 16px;
-  border-top: 2px solid #ccc;
-}
-
-.selected-parcel h3 {
-  margin: 0 0 8px 0;
-  font-size: 14px;
-  color: #f00;
-}
-
-.selected-parcel table {
-  width: 100%;
-  font-size: 12px;
+.tooltip table {
   border-collapse: collapse;
 }
 
-.selected-parcel td {
-  padding: 4px;
-  border-bottom: 1px solid #ddd;
+.tooltip td {
+  padding: 3px 6px;
 }
 
-.selected-parcel .key {
+.tooltip .key {
   font-weight: bold;
-  color: #333;
-  width: 40%;
+  color: #ccc;
+  padding-right: 12px;
+  white-space: nowrap;
 }
 
-.selected-parcel .value {
-  color: #666;
-  word-break: break-word;
+.tooltip .value {
+  color: #fff;
 }
 </style>
