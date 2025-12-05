@@ -64,11 +64,9 @@ async function loadDataset() {
   const dataset = currentDataset();
 
   if (map.value.getLayer('data-fill')) map.value.removeLayer('data-fill');
-  if (map.value.getLayer('data-fill-pattern')) map.value.removeLayer('data-fill-pattern');
   if (map.value.getLayer('data-line')) map.value.removeLayer('data-line');
   if (map.value.getLayer('data-point')) map.value.removeLayer('data-point');
   if (map.value.getLayer('public-fill')) map.value.removeLayer('public-fill');
-  if (map.value.getLayer('public-fill-pattern')) map.value.removeLayer('public-fill-pattern');
   if (map.value.getLayer('public-line')) map.value.removeLayer('public-line');
   if (map.value.getLayer('transit-bart')) map.value.removeLayer('transit-bart');
   if (map.value.getLayer('transit-caltrain')) map.value.removeLayer('transit-caltrain');
@@ -122,40 +120,13 @@ async function loadDataset() {
   const geomType = sampleFeature?.geometry?.type || 'Polygon';
 
   if (geomType.includes('Polygon')) {
-    const size = 64;
-    const stripePattern = new Uint8Array(size * size * 4);
-
-    for (let y = 0; y < size; y++) {
-      for (let x = 0; x < size; x++) {
-        const isStripe = (x + y) % 8 < 4;
-        const pos = (y * size + x) * 4;
-        if (isStripe) {
-          stripePattern[pos] = 46;
-          stripePattern[pos + 1] = 168;
-          stripePattern[pos + 2] = 67;
-          stripePattern[pos + 3] = 255;
-        } else {
-          stripePattern[pos] = 136;
-          stripePattern[pos + 1] = 136;
-          stripePattern[pos + 2] = 136;
-          stripePattern[pos + 3] = 255;
-        }
-      }
-    }
-
-    map.value.addImage('stripe-pattern', {
-      width: size,
-      height: size,
-      data: stripePattern
-    });
-
     map.value.addLayer({
       id: 'data-fill',
       type: 'fill',
       source: 'data',
       paint: {
-        'fill-color': '#888',
-        'fill-opacity': 0.4
+        'fill-color': '#fff',
+        'fill-opacity': 1
       }
     });
 
@@ -163,7 +134,7 @@ async function loadDataset() {
       id: 'data-line',
       type: 'line',
       source: 'data',
-      paint: { 'line-color': '#000', 'line-width': 0.5, 'line-opacity': 0.5 }
+      paint: { 'line-color': '#000', 'line-width': 0.5, 'line-opacity': 1 }
     });
 
     const publicResponse = await fetch('/data/public-parcels.geojson');
@@ -176,28 +147,8 @@ async function loadDataset() {
       type: 'fill',
       source: 'public-data',
       paint: {
-        'fill-color': [
-          'case',
-          ['==', ['get', 'zoning_district'], 'PUBLIC'],
-          '#2ea843',
-          '#888'
-        ],
-        'fill-opacity': 0.4
-      }
-    });
-
-    map.value.addLayer({
-      id: 'public-fill-pattern',
-      type: 'fill',
-      source: 'public-data',
-      paint: {
-        'fill-pattern': [
-          'case',
-          ['!=', ['get', 'zoning_district'], 'PUBLIC'],
-          'stripe-pattern',
-          ''
-        ],
-        'fill-opacity': 0.8
+        'fill-color': '#888',
+        'fill-opacity': 0.6
       }
     });
 
@@ -366,6 +317,41 @@ onMounted(() => {
 <template>
   <div class="container">
     <div class="sidebar">
+      <h1>Fantasy Zoning</h1>
+      <p>Can you save SF from RHNA de-certification?</p>
+      <div class="scenarios-table">
+        <table>
+          <thead>
+            <tr>
+              <th></th>
+              <th>Low Growth</th>
+              <th>High Growth</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="row-label">Current Zoning</td>
+              <td>1,594</td>
+              <td>3,199</td>
+            </tr>
+            <tr>
+              <td class="row-label">FZP</td>
+              <td>10,098</td>
+              <td>17,845</td>
+            </tr>
+            <tr class="your-plan">
+              <td class="row-label">Your Plan</td>
+              <td>TBD</td>
+              <td>TBD</td>
+            </tr>
+            <tr>
+              <td class="row-label">Target</td>
+              <td>36,200</td>
+              <td>36,200</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
     <div ref="mapContainer" class="map-container">
       <div v-if="hoveredParcel" class="tooltip" :style="{ left: tooltipPosition.x + 15 + 'px', top: tooltipPosition.y + 15 + 'px' }">
@@ -419,6 +405,43 @@ onMounted(() => {
   overflow-y: auto;
   flex-shrink: 0;
   color: #333;
+}
+
+.sidebar h1 {
+  margin: 0 0 16px 0;
+  font-size: 24px;
+}
+
+.scenarios-table {
+  margin-bottom: 16px;
+}
+
+.scenarios-table table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.scenarios-table th,
+.scenarios-table td {
+  border: 1px solid #ccc;
+  padding: 8px 12px;
+  text-align: center;
+}
+
+.scenarios-table th {
+  font-weight: 600;
+  background: #e8e8e8;
+}
+
+.scenarios-table .row-label {
+  font-weight: 600;
+  text-align: left;
+  background: #e8e8e8;
+}
+
+.scenarios-table .your-plan td {
+  font-weight: 700;
 }
 
 .controls {
