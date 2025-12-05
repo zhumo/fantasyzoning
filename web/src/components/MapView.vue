@@ -19,17 +19,37 @@ const datasets = [
 
 const currentDataset = () => datasets[currentIndex.value];
 
+function parseCSVLine(line) {
+  const values = [];
+  let current = '';
+  let inQuotes = false;
+
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+    if (char === '"') {
+      inQuotes = !inQuotes;
+    } else if (char === ',' && !inQuotes) {
+      values.push(current.trim());
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+  values.push(current.trim());
+  return values;
+}
+
 function parseCSV(text) {
   const lines = text.split('\n');
-  const headers = lines[0].split(',');
+  const headers = parseCSVLine(lines[0]);
   const data = [];
 
   for (let i = 1; i < lines.length; i++) {
     if (!lines[i].trim()) continue;
-    const values = lines[i].split(',');
+    const values = parseCSVLine(lines[i]);
     const row = {};
     headers.forEach((header, index) => {
-      row[header.trim()] = values[index]?.trim() || '';
+      row[header] = values[index] || '';
     });
     data.push(row);
   }
