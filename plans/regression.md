@@ -10,7 +10,7 @@ Expected Units = P(redevelopment over 20 years) × Units if Redeveloped
 
 ## Data Inputs
 
-### Parcel Data (from fzp-zoning.csv or current-zoning.csv)
+### Parcel Data (from fzp-zoning.csv)
 Each row contains:
 - `BlockLot` - unique identifier
 - `Height_Ft`, `Area_1000`, `Env_1000_Area_Height`, `Bldg_SqFt_1000`
