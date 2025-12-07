@@ -1,7 +1,8 @@
 <script setup>
-import { onMounted, ref, watch } from 'vue';
+import { onMounted, ref, watch, computed } from 'vue';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
+import { UnitCalculator } from '../unitCalculator.js';
 
 const mapContainer = ref(null);
 const map = ref(null);
@@ -12,6 +13,69 @@ const loading = ref(false);
 const hoveredParcel = ref(null);
 const hoveredFeature = ref(null);
 const tooltipPosition = ref({ x: 0, y: 0 });
+
+const userRules = ref([]);
+const fzpZoningData = ref([]);
+const parcelAttributes = ref(new Map());
+const yourPlanLow = ref(null);
+const yourPlanHigh = ref(null);
+const calculating = ref(false);
+
+const hoveredParcelStats = computed(() => {
+  if (!hoveredParcel.value || fzpZoningData.value.length === 0) return null;
+
+  const mapblklot = hoveredParcel.value.mapblklot;
+  const fzpParcel = fzpZoningData.value.find(p => String(p.BlockLot) === mapblklot);
+  if (!fzpParcel) return null;
+
+  const proposedHeight = parseFloat(hoveredParcel.value.effective_height) || parseFloat(hoveredParcel.value.fzp_height_ft) || 0;
+
+  const modifiedParcel = { ...fzpParcel };
+  if (proposedHeight > fzpParcel.Height_Ft) {
+    modifiedParcel.Height_Ft = proposedHeight;
+    modifiedParcel.Env_1000_Area_Height = fzpParcel.Area_1000 * proposedHeight;
+    modifiedParcel.SDB_2016_5Plus_EnvFull = fzpParcel.SDB_2016_5Plus * modifiedParcel.Env_1000_Area_Height;
+  }
+
+  const probLow = UnitCalculator.calc20YearProbability(modifiedParcel, 'low');
+  const probHigh = UnitCalculator.calc20YearProbability(modifiedParcel, 'high');
+  const units = UnitCalculator.calcUnitsIfRedeveloped(modifiedParcel);
+
+  return {
+    probLow: (probLow * 100).toFixed(1),
+    probHigh: (probHigh * 100).toFixed(1),
+    units: units.toFixed(1)
+  };
+});
+
+const NEIGHBORHOODS = [
+  'Bayview Hunters Point', 'Bernal Heights', 'Castro/Upper Market', 'Chinatown',
+  'Excelsior', 'Financial District/South Beach', 'Glen Park', 'Golden Gate Park',
+  'Haight Ashbury', 'Hayes Valley', 'Inner Richmond', 'Inner Sunset', 'Japantown',
+  'Lakeshore', 'Lincoln Park', 'Lone Mountain/USF', 'Marina', 'McLaren Park',
+  'Mission', 'Mission Bay', 'Nob Hill', 'Noe Valley', 'North Beach',
+  'Oceanview/Merced/Ingleside', 'Outer Mission', 'Outer Richmond', 'Pacific Heights',
+  'Portola', 'Potrero Hill', 'Presidio', 'Presidio Heights', 'Russian Hill',
+  'Seacliff', 'South of Market', 'Sunset/Parkside', 'Tenderloin', 'Treasure Island',
+  'Twin Peaks', 'Visitacion Valley', 'West of Twin Peaks', 'Western Addition'
+];
+
+const ZONING_CODES = [
+  'BR-MU', 'C-2', 'C-3-G', 'C-3-O', 'C-3-O(SD)', 'C-3-R', 'C-3-S', 'CCB', 'CMUO',
+  'CRNC', 'CVR', 'HP-RA', 'Job Corps', 'M-1', 'M-2', 'MB-O', 'MB-RA', 'MR-MU',
+  'MUG', 'MUO', 'MUR', 'NC-1', 'NC-2', 'NC-3', 'NC-S', 'NCD', 'NCT', 'NCT-1',
+  'NCT-2', 'NCT-3', 'P70-MU', 'PDR-1-B', 'PDR-1-D', 'PDR-1-G', 'PDR-2', 'PM-CF',
+  'PM-MU1', 'PM-MU2', 'PM-OS', 'PM-R', 'PM-S', 'PPS-MU', 'RC-3', 'RC-4', 'RCD',
+  'RED', 'RED-MX', 'RH DTR', 'RH-1', 'RH-1(D)', 'RH-1(S)', 'RH-2', 'RH-3',
+  'RM-1', 'RM-2', 'RM-3', 'RM-4', 'RTO', 'RTO-M', 'S-MU', 'SALI', 'SB-DTR',
+  'SPD', 'TB DTR', 'TI-MU', 'TI-OS', 'TI-R', 'UMU', 'WMUG', 'WMUO',
+  'YBI-MU', 'YBI-OS', 'YBI-R'
+];
+
+const FZP_HEIGHTS = [
+  '40', '45', '50', '55', '60', '65', '70', '80', '85', '100', '105',
+  '120', '130', '140', '160', '180', '240', '250', '300', '350', '450', '500', '650'
+];
 
 const datasets = [
   { file: 'parcels.geojson', attributesFile: 'parcels.csv', name: 'SF Parcels', color: '#066' },
@@ -57,6 +121,131 @@ function parseCSV(text) {
   return data;
 }
 
+function parseNumericCSV(text) {
+  const lines = text.split('\n');
+  const headers = parseCSVLine(lines[0]);
+  const data = [];
+
+  for (let i = 1; i < lines.length; i++) {
+    if (!lines[i].trim()) continue;
+    const values = parseCSVLine(lines[i]);
+    const row = {};
+    headers.forEach((header, index) => {
+      const val = values[index] || '';
+      row[header] = parseFloat(val) || 0;
+    });
+    data.push(row);
+  }
+
+  return data;
+}
+
+function addRule() {
+  userRules.value.push({
+    id: Date.now(),
+    selectionType: 'neighborhood',
+    selectionValue: '',
+    proposedHeight: '',
+    saved: false
+  });
+}
+
+function saveRule(ruleId) {
+  const rule = userRules.value.find(r => r.id === ruleId);
+  if (rule && rule.selectionValue && rule.proposedHeight) {
+    rule.saved = true;
+    recalculateProjections();
+    updateMapColors();
+  }
+}
+
+function removeRule(ruleId) {
+  userRules.value = userRules.value.filter(r => r.id !== ruleId);
+  recalculateProjections();
+  updateMapColors();
+}
+
+function ruleMatchesParcel(rule, parcelAttrs) {
+  if (!rule.selectionValue) return false;
+
+  switch (rule.selectionType) {
+    case 'parcelId':
+      return parcelAttrs.mapblklot === rule.selectionValue;
+    case 'neighborhood':
+      return parcelAttrs.analysis_neighborhood === rule.selectionValue;
+    case 'zoningCode':
+      return parcelAttrs.zoning_code && parcelAttrs.zoning_code.split('|').includes(rule.selectionValue);
+    case 'fzpHeight':
+      return parcelAttrs.fzp_height_ft === rule.selectionValue;
+  }
+  return false;
+}
+
+function getProposedHeight(parcelAttrs) {
+  let maxHeight = null;
+
+  for (const rule of userRules.value) {
+    if (rule.saved && ruleMatchesParcel(rule, parcelAttrs)) {
+      const height = parseFloat(rule.proposedHeight);
+      if (!isNaN(height) && (maxHeight === null || height > maxHeight)) {
+        maxHeight = height;
+      }
+    }
+  }
+
+  return maxHeight;
+}
+
+function recalculateProjections() {
+  if (fzpZoningData.value.length === 0) return;
+
+  calculating.value = true;
+
+  const modifiedParcels = fzpZoningData.value.map(parcel => {
+    const blockLot = String(parcel.BlockLot);
+    const attrs = parcelAttributes.value.get(blockLot) || {};
+    const proposedHeight = getProposedHeight(attrs);
+
+    if (proposedHeight !== null && proposedHeight > parcel.Height_Ft) {
+      const newParcel = { ...parcel };
+      newParcel.Height_Ft = proposedHeight;
+      newParcel.Env_1000_Area_Height = parcel.Area_1000 * proposedHeight;
+      newParcel.SDB_2016_5Plus_EnvFull = parcel.SDB_2016_5Plus * newParcel.Env_1000_Area_Height;
+      return newParcel;
+    }
+
+    return parcel;
+  });
+
+  yourPlanLow.value = Math.round(UnitCalculator.calcTotalExpectedUnits(modifiedParcels, 'low'));
+  yourPlanHigh.value = Math.round(UnitCalculator.calcTotalExpectedUnits(modifiedParcels, 'high'));
+
+  calculating.value = false;
+}
+
+function updateMapColors() {
+  if (!map.value || !map.value.getSource('data')) return;
+
+  const source = map.value.getSource('data');
+  const geojson = source._data;
+
+  geojson.features.forEach(feature => {
+    const attrs = feature.properties;
+    const proposedHeight = getProposedHeight(attrs);
+    if (proposedHeight !== null) {
+      feature.properties.effective_height = Math.max(
+        proposedHeight,
+        parseFloat(attrs.fzp_height_ft) || parseFloat(attrs.current_height_ft) || 0
+      );
+    } else {
+      feature.properties.effective_height = parseFloat(attrs.fzp_height_ft) || parseFloat(attrs.current_height_ft) || 0;
+    }
+  });
+
+  source.setData(geojson);
+}
+
+
 async function loadDataset() {
   if (!map.value) return;
 
@@ -77,19 +266,24 @@ async function loadDataset() {
   if (map.value.getSource('transit-caltrain')) map.value.removeSource('transit-caltrain');
   if (map.value.getSource('highlight')) map.value.removeSource('highlight');
 
-  const [geomResponse, attrResponse] = await Promise.all([
+  const [geomResponse, attrResponse, fzpResponse] = await Promise.all([
     fetch(`/data/${dataset.file}`),
-    fetch(`/data/${dataset.attributesFile}`)
+    fetch(`/data/${dataset.attributesFile}`),
+    fetch('/data/fzp-zoning.csv')
   ]);
 
   const geometries = await geomResponse.json();
   const attributesText = await attrResponse.text();
   const attributes = parseCSV(attributesText);
 
+  const fzpText = await fzpResponse.text();
+  fzpZoningData.value = parseNumericCSV(fzpText);
+
   const attributesMap = new Map();
   attributes.forEach(attr => {
     attributesMap.set(attr.mapblklot, attr);
   });
+  parcelAttributes.value = attributesMap;
 
   geometries.features.forEach(feature => {
     const mapblklot = feature.properties.mapblklot;
@@ -97,6 +291,7 @@ async function loadDataset() {
     if (attrs) {
       feature.properties = { ...feature.properties, ...attrs };
     }
+    feature.properties.effective_height = parseFloat(feature.properties.fzp_height_ft) || parseFloat(feature.properties.current_height_ft) || 0;
   });
 
   const geojson = geometries;
@@ -127,7 +322,7 @@ async function loadDataset() {
       paint: {
         'fill-color': [
           'step',
-          ['to-number', ['coalesce', ['get', 'fzp_height_ft'], ['get', 'current_height_ft']], 0],
+          ['to-number', ['get', 'effective_height'], 0],
           '#ffffff',
           45, '#c7e9b4',
           65, '#7fcdbb',
@@ -232,6 +427,7 @@ async function loadDataset() {
   }
 
   setupInteractions(geojson);
+  recalculateProjections();
   loading.value = false;
 }
 
@@ -297,6 +493,11 @@ function getParcelAddress(parcel) {
   return parcel.mapblklot || 'Unknown Address';
 }
 
+function formatNumber(num) {
+  if (num === null) return 'TBD';
+  return num.toLocaleString();
+}
+
 watch(currentIndex, loadDataset);
 
 onMounted(() => {
@@ -322,6 +523,7 @@ onMounted(() => {
     <div class="sidebar">
       <h1>Fantasy Zoning</h1>
       <p>Can you save SF from RHNA de-certification?</p>
+      <p>Target: 36,000</p>
       <div class="scenarios-table">
         <table>
           <thead>
@@ -334,17 +536,88 @@ onMounted(() => {
           <tbody>
             <tr>
               <td class="row-label">FZP</td>
-              <td>10,098</td>
-              <td>17,845</td>
+              <td>~10k</td>
+              <td>~18k</td>
             </tr>
             <tr class="your-plan">
               <td class="row-label">Your Plan</td>
-              <td>TBD</td>
-              <td>TBD</td>
+              <td>{{ formatNumber(yourPlanLow) }}</td>
+              <td>{{ formatNumber(yourPlanHigh) }}</td>
             </tr>
           </tbody>
         </table>
-        <p>Target: 36,200</p>
+      </div>
+
+      <div class="rules-section">
+        <h2>Your Plan</h2>
+        <p class="rules-description">Add rules to upzone parcels. When rules overlap, the tallest height wins.</p>
+
+        <div v-for="rule in userRules" :key="rule.id" class="rule-card" :class="{ saved: rule.saved }">
+          <div class="rule-row">
+            <label>Select by:</label>
+            <select v-model="rule.selectionType" @change="rule.selectionValue = ''; rule.saved = false">
+              <option value="parcelId">Parcel ID</option>
+              <option value="neighborhood">Neighborhood</option>
+              <option value="zoningCode">Zoning Code</option>
+              <option value="fzpHeight">FZP Height</option>
+            </select>
+          </div>
+
+          <div class="rule-row">
+            <label>Value:</label>
+            <input
+              v-if="rule.selectionType === 'parcelId'"
+              type="text"
+              v-model="rule.selectionValue"
+              placeholder="e.g. 2993020"
+              @input="rule.saved = false"
+            />
+            <select
+              v-else-if="rule.selectionType === 'neighborhood'"
+              v-model="rule.selectionValue"
+              @change="rule.saved = false"
+            >
+              <option value="">Select neighborhood...</option>
+              <option v-for="n in NEIGHBORHOODS" :key="n" :value="n">{{ n }}</option>
+            </select>
+            <select
+              v-else-if="rule.selectionType === 'zoningCode'"
+              v-model="rule.selectionValue"
+              @change="rule.saved = false"
+            >
+              <option value="">Select zoning code...</option>
+              <option v-for="z in ZONING_CODES" :key="z" :value="z">{{ z }}</option>
+            </select>
+            <select
+              v-else-if="rule.selectionType === 'fzpHeight'"
+              v-model="rule.selectionValue"
+              @change="rule.saved = false"
+            >
+              <option value="">Select FZP height...</option>
+              <option v-for="h in FZP_HEIGHTS" :key="h" :value="h">{{ h }} ft</option>
+            </select>
+          </div>
+
+          <div class="rule-row">
+            <label>Proposed Height (ft):</label>
+            <input
+              type="number"
+              v-model="rule.proposedHeight"
+              placeholder="e.g. 85"
+              @input="rule.saved = false"
+            />
+          </div>
+
+          <div class="rule-actions">
+            <button v-if="!rule.saved" class="save-rule" @click="saveRule(rule.id)" :disabled="!rule.selectionValue || !rule.proposedHeight">Save Rule</button>
+            <span v-else class="saved-indicator">Saved</span>
+            <button class="delete-rule" @click="removeRule(rule.id)">Remove</button>
+          </div>
+        </div>
+
+        <button class="add-rule" @click="addRule">+ Add Rule</button>
+
+        <div v-if="calculating" class="calculating">Calculating...</div>
       </div>
     </div>
     <div ref="mapContainer" class="map-container">
@@ -382,6 +655,18 @@ onMounted(() => {
             <tr v-if="hoveredParcel.fzp_height_ft">
               <td class="key">FZP Height</td>
               <td class="value">{{ hoveredParcel.fzp_height_ft }} ft</td>
+            </tr>
+            <tr v-if="hoveredParcel.fzp_height_ft">
+              <td class="key">Your Proposed Height</td>
+              <td class="value">{{ hoveredParcel.effective_height || hoveredParcel.fzp_height_ft }} ft</td>
+            </tr>
+            <tr v-if="hoveredParcelStats">
+              <td class="key">Redev. Probability</td>
+              <td class="value">{{ hoveredParcelStats.probLow }}% - {{ hoveredParcelStats.probHigh }}%</td>
+            </tr>
+            <tr v-if="hoveredParcelStats">
+              <td class="key">Units if Redeveloped</td>
+              <td class="value">{{ hoveredParcelStats.units }}</td>
             </tr>
           </tbody>
         </table>
@@ -469,6 +754,136 @@ onMounted(() => {
 
 .scenarios-table .your-plan td {
   font-weight: 700;
+}
+
+.rules-section {
+  margin-top: 20px;
+}
+
+.rules-section h2 {
+  margin: 0 0 8px 0;
+  font-size: 18px;
+}
+
+.rules-description {
+  font-size: 13px;
+  color: #666;
+  margin: 0 0 12px 0;
+}
+
+.rule-card {
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 12px;
+  margin-bottom: 12px;
+}
+
+.rule-row {
+  margin-bottom: 10px;
+}
+
+.rule-row label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 4px;
+  color: #555;
+}
+
+.rule-row select,
+.rule-row input {
+  width: 100%;
+  padding: 8px;
+  font-size: 14px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background: #fff;
+  color: #333;
+  box-sizing: border-box;
+}
+
+.rule-row input:focus,
+.rule-row select:focus {
+  outline: none;
+  border-color: #0066ff;
+}
+
+.rule-card.saved {
+  border-color: #090;
+  background: #f0fff0;
+}
+
+.rule-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.save-rule {
+  flex: 1;
+  padding: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+  background: #090;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.save-rule:hover {
+  background: #070;
+}
+
+.save-rule:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+.saved-indicator {
+  flex: 1;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: #090;
+}
+
+.delete-rule {
+  padding: 8px 12px;
+  font-size: 12px;
+  color: #c00;
+  background: #fff;
+  border: 1px solid #c00;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.delete-rule:hover {
+  background: #fee;
+}
+
+.add-rule {
+  width: 100%;
+  padding: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  background: #0066ff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.add-rule:hover {
+  background: #0055dd;
+}
+
+.calculating {
+  text-align: center;
+  padding: 10px;
+  color: #666;
+  font-style: italic;
 }
 
 .controls {

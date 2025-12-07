@@ -71,24 +71,29 @@ web/
 ## Current Features
 
 The app currently displays:
-- **Parcel map**: All SF parcels rendered with Mapbox GL JS
+- **Parcel map**: All SF parcels rendered with Mapbox GL JS, colored by height
 - **Public parcels**: Highlighted with green fill and stripe pattern for non-PUBLIC zoning
 - **Transit stations**: BART and Caltrain stations as blue circles
-- **Parcel selection**: Click to select, shows details in sidebar
-- **Hover tooltip**: Shows address on hover
-- **Sidebar**: Displays selected parcel info (address, neighborhood, zoning, supervisor)
+- **Hover tooltip**: Shows address, zoning, supervisor, and height info
+- **Sidebar**: Displays FZP vs Your Plan projections table
+- **Your Plan Rules**: Users can add upzoning rules to create custom housing plans
+  - Select parcels by: Parcel ID, Neighborhood, Zoning Code, or FZP Height
+  - Set proposed height for matching parcels
+  - When rules overlap, tallest height wins
+  - Projections recalculate automatically using UnitCalculator
 
 ## Key Data Files
 
 **Source data (`data/` directory):**
 - `parcels.geojson` (59MB) - Raw parcel geometries
 - `parcels.csv` (16MB) - Raw parcel attributes
-- `fzp.csv` (16MB) - Floor-zone-parcel analysis data
+- `fzp-zoning.csv` - Parcel data for projection model (contains model coefficients)
 - `public-parcels.geojson` (5.6MB) - Public parcels subset
 - Transit files: `transit-bart.geojson`, `transit-caltrain.geojson`
 
 **Served data (`web/public/data/`):**
 - Same structure as source data, served at `/data/` path
+- `fzp-zoning.csv` - Copy of source fzp-zoning.csv for client-side projections
 
 ## Parcel Data Structure
 
@@ -116,26 +121,26 @@ Parcel data is split between two files, joined by `mapblklot`:
 - `zoning_district` - Full zoning name
 - `blklots` - Associated block/lots
 
-## Planned Features (Not Yet Implemented)
+## Unit Projection Model
 
-The following features are planned but not yet built:
+The app uses the City Economist's predictive model (see `web/src/unitCalculator.js`):
+
+- **Probability model**: Logistic regression predicting probability of redevelopment over 20 years
+- **Units model**: Linear model predicting units if redeveloped based on envelope, zoning, SDB status
+- **Key inputs**: Height_Ft, Area_1000, Env_1000_Area_Height (area * height), zoning type flags, district flags
+- **Outputs**: Low growth and high growth expected unit counts
+
+When users add upzoning rules:
+1. Matching parcels get their Height_Ft updated to proposed height
+2. Env_1000_Area_Height is recalculated (Area_1000 * new height)
+3. Projections are recalculated for all parcels
+
+## Planned Features (Not Yet Implemented)
 
 1. **Three Zoning Layers**:
    - Original Zoning (current SF zoning)
    - Proposed Zoning (June 2025 rezoning proposal)
    - User's Custom Zoning (user-defined via UI)
-
-2. **Height limit fields** (not in current CSV):
-   - `current_height_num`, `current_height_code`
-   - `proposed_height`, `proposed_height_num`
-
-3. **Unit calculation** using constants:
-   - `building_efficiency_discount = 0.8`
-   - `typical_unit_size = 850` sq ft
-
-4. **Upzoning criteria UI** on the left sidebar
-
-5. **Expected units display** showing projected housing units
 
 ## Development Workflow
 
