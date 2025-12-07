@@ -333,11 +333,6 @@ onMounted(() => {
           </thead>
           <tbody>
             <tr>
-              <td class="row-label">Current Zoning</td>
-              <td>1,594</td>
-              <td>3,199</td>
-            </tr>
-            <tr>
               <td class="row-label">FZP</td>
               <td>10,098</td>
               <td>17,845</td>
@@ -347,13 +342,9 @@ onMounted(() => {
               <td>TBD</td>
               <td>TBD</td>
             </tr>
-            <tr>
-              <td class="row-label">Target</td>
-              <td>36,200</td>
-              <td>36,200</td>
-            </tr>
           </tbody>
         </table>
+        <p>Target: 36,200</p>
       </div>
     </div>
     <div ref="mapContainer" class="map-container">
@@ -388,12 +379,8 @@ onMounted(() => {
               <td class="key"># Units</td>
               <td class="value">{{ Array(hoveredParcel.blklots).length }}</td>
             </tr>
-            <tr v-if="hoveredParcel.current_height_ft">
-              <td class="key">Current Height</td>
-              <td class="value">{{ hoveredParcel.current_height_ft }} ft</td>
-            </tr>
             <tr v-if="hoveredParcel.fzp_height_ft">
-              <td class="key">Proposed Height</td>
+              <td class="key">FZP Height</td>
               <td class="value">{{ hoveredParcel.fzp_height_ft }} ft</td>
             </tr>
           </tbody>
