@@ -241,29 +241,46 @@ function getProposedHeight(parcelAttrs) {
   return maxHeight;
 }
 
+function calcExpectedUnitsWithCache(parcel, height, scenario) {
+  const cacheKey = `${height}_${scenario}`;
+  if (parcel.unitsCache[cacheKey] !== undefined) {
+    return parcel.unitsCache[cacheKey];
+  }
+
+  const modifiedParcel = { ...parcel };
+  modifiedParcel.Height_Ft = height;
+  modifiedParcel.Env_1000_Area_Height = parcel.Area_1000 * height;
+  modifiedParcel.SDB_2016_5Plus_EnvFull = parcel.SDB_2016_5Plus * modifiedParcel.Env_1000_Area_Height;
+
+  const result = UnitCalculator.calcExpectedUnits(modifiedParcel, scenario);
+  parcel.unitsCache[cacheKey] = result;
+  return result;
+}
+
 function recalculateProjections() {
   if (fzpZoningData.value.length === 0) return;
 
   calculating.value = true;
 
-  const modifiedParcels = fzpZoningData.value.map(parcel => {
+  let totalLow = 0;
+  let totalHigh = 0;
+
+  for (const parcel of fzpZoningData.value) {
     const blockLot = String(parcel.BlockLot);
     const attrs = parcelAttributes.value.get(blockLot) || {};
     const proposedHeight = getProposedHeight(attrs);
 
     if (proposedHeight !== null && proposedHeight > parcel.Height_Ft) {
-      const newParcel = { ...parcel };
-      newParcel.Height_Ft = proposedHeight;
-      newParcel.Env_1000_Area_Height = parcel.Area_1000 * proposedHeight;
-      newParcel.SDB_2016_5Plus_EnvFull = parcel.SDB_2016_5Plus * newParcel.Env_1000_Area_Height;
-      return newParcel;
+      totalLow += calcExpectedUnitsWithCache(parcel, proposedHeight, 'low');
+      totalHigh += calcExpectedUnitsWithCache(parcel, proposedHeight, 'high');
+    } else {
+      totalLow += parcel.fzp_expected_units_low;
+      totalHigh += parcel.fzp_expected_units_high;
     }
+  }
 
-    return parcel;
-  });
-
-  yourPlanLow.value = Math.round(UnitCalculator.calcTotalExpectedUnits(modifiedParcels, 'low'));
-  yourPlanHigh.value = Math.round(UnitCalculator.calcTotalExpectedUnits(modifiedParcels, 'high'));
+  yourPlanLow.value = Math.round(totalLow);
+  yourPlanHigh.value = Math.round(totalHigh);
 
   calculating.value = false;
 }
@@ -321,7 +338,11 @@ async function loadDataset() {
   const attributes = parseCSV(attributesText);
 
   const fzpText = await fzpResponse.text();
-  fzpZoningData.value = parseNumericCSV(fzpText);
+  const parsedFzpData = parseNumericCSV(fzpText);
+  parsedFzpData.forEach(parcel => {
+    parcel.unitsCache = {};
+  });
+  fzpZoningData.value = parsedFzpData;
 
   const attributesMap = new Map();
   attributes.forEach(attr => {
