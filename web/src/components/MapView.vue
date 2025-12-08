@@ -298,7 +298,6 @@ async function loadDataset() {
   const dataset = currentDataset();
 
   if (map.value.getLayer('data-fill')) map.value.removeLayer('data-fill');
-  if (map.value.getLayer('data-line')) map.value.removeLayer('data-line');
   if (map.value.getLayer('data-point')) map.value.removeLayer('data-point');
   if (map.value.getLayer('public-fill')) map.value.removeLayer('public-fill');
   if (map.value.getLayer('transit-bart')) map.value.removeLayer('transit-bart');
@@ -379,13 +378,6 @@ async function loadDataset() {
       }
     });
 
-    map.value.addLayer({
-      id: 'data-line',
-      type: 'line',
-      source: 'data',
-      filter: ['!=', ['get', 'current_height_ft'], ''],
-      paint: { 'line-color': '#000', 'line-width': 0.5, 'line-opacity': 1 }
-    });
 
     const publicResponse = await fetch('/data/public-parcels.geojson');
     const publicGeojson = await publicResponse.json();
@@ -539,7 +531,7 @@ function getParcelAddress(parcel) {
 }
 
 function formatNumber(num) {
-  if (num === null) return 'TBD';
+  if (num === null) return null;
   return num.toLocaleString();
 }
 
@@ -553,9 +545,9 @@ onMounted(() => {
     style: 'mapbox://styles/mapbox/light-v11',
     center: [-122.4862, 37.7694],
     zoom: 12,
-    minZoom: 12,
+    minZoom: 10,
     maxZoom: 18,
-    maxBounds: [[-122.48, 37.72], [-122.40, 37.80]]
+    maxBounds: [[-122.55, 37.65], [-122.28, 37.85]]
   });
 
   map.value.addControl(new mapboxgl.NavigationControl(), 'top-right');
@@ -586,8 +578,8 @@ onMounted(() => {
             </tr>
             <tr class="your-plan">
               <td class="row-label">Your Plan</td>
-              <td>{{ formatNumber(yourPlanLow) }}</td>
-              <td>{{ formatNumber(yourPlanHigh) }}</td>
+              <td>{{ formatNumber(yourPlanLow) || "10,268" }}</td>
+              <td>{{ formatNumber(yourPlanHigh) || "17,775" }}</td>
             </tr>
           </tbody>
         </table>
@@ -595,9 +587,7 @@ onMounted(() => {
 
       <div class="rules-section">
         <h2>Your Plan</h2>
-        <p class="rules-description">Add rules to upzone parcels. When rules overlap, the tallest height wins.</p>
-
-        <div v-if="userRules.length === 0" class="no-rules">No rules yet. Add a rule to get started.</div>
+        <p class="rules-description">When rules overlap, the tallest height wins.</p>
 
         <div v-for="rule in userRules" :key="rule.id" class="rule-item" @click="openEditRuleModal(rule)">
           <div class="rule-summary">
