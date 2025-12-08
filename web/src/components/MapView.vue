@@ -141,7 +141,7 @@ function parseNumericCSV(text) {
     const row = {};
     headers.forEach((header, index) => {
       const val = values[index] || '';
-      row[header] = parseFloat(val) || 0;
+      row[header] = header === 'BlockLot' ? val : (parseFloat(val) || 0);
     });
     data.push(row);
   }
