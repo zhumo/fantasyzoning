@@ -367,7 +367,7 @@ async function loadDataset() {
         'fill-color': [
           'step',
           ['to-number', ['get', 'effective_height'], 0],
-          '#ffffff',
+          'transparent',
           45, '#c7e9b4',
           65, '#7fcdbb',
           85, '#41b6c4',
@@ -557,7 +557,8 @@ onMounted(() => {
 
 <template>
   <div class="container">
-    <div class="sidebar">
+    <div class="main-content">
+      <div class="sidebar">
       <h1>Fantasy Zoning</h1>
       <p>Can you save SF from RHNA de-certification?</p>
       <p>Target: 36,200</p>
@@ -609,7 +610,8 @@ onMounted(() => {
         <div v-if="calculating" class="calculating">Calculating...</div>
       </div>
     </div>
-    <div ref="mapContainer" class="map-container">
+    <div class="map-wrapper">
+      <div ref="mapContainer" class="map-container">
       <div v-if="hoveredParcel" class="tooltip" :style="{ left: tooltipPosition.x + 15 + 'px', top: tooltipPosition.y + 15 + 'px' }">
         <table>
           <tbody>
@@ -664,7 +666,7 @@ onMounted(() => {
         <div class="legend-title">Height (ft)</div>
         <div class="legend-items">
           <div class="legend-item">
-            <span class="legend-color" style="background: #ffffff; border: 1px solid #ccc;"></span>
+            <span class="legend-color" style="background: transparent; border: 1px solid #ccc;"></span>
             <span>0-45</span>
           </div>
           <div class="legend-item">
@@ -689,7 +691,10 @@ onMounted(() => {
           </div>
         </div>
       </div>
+      </div>
+      </div>
     </div>
+    <div class="attribution">made with 🏠 by <a href="https://www.github.com/zhumo/fantasyzoning" target="_blank">Mo Zhu</a></div>
 
     <div v-if="showModal" class="modal-overlay" @click.self="closeModal">
       <div class="modal">
@@ -745,7 +750,14 @@ onMounted(() => {
 <style scoped>
 .container {
   display: flex;
+  flex-direction: column;
   height: 100vh;
+}
+
+.main-content {
+  display: flex;
+  flex: 1;
+  min-height: 0;
 }
 
 .sidebar {
@@ -941,10 +953,32 @@ onMounted(() => {
   white-space: nowrap;
 }
 
+.map-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
 .map-container {
   flex: 1;
-  height: 100vh;
   position: relative;
+}
+
+.attribution {
+  padding: 14px 16px;
+  background: transparent;
+  font-size: 12px;
+  color: #ccc;
+  text-align: center;
+}
+
+.attribution a {
+  color: #fff;
+  text-decoration: none;
+}
+
+.attribution a:hover {
+  text-decoration: underline;
 }
 
 .tooltip {
