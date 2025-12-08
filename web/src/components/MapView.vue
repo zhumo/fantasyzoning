@@ -334,14 +334,10 @@ async function loadDataset() {
   if (map.value.getLayer('data-fill')) map.value.removeLayer('data-fill');
   if (map.value.getLayer('data-point')) map.value.removeLayer('data-point');
   if (map.value.getLayer('public-fill')) map.value.removeLayer('public-fill');
-  if (map.value.getLayer('transit-bart')) map.value.removeLayer('transit-bart');
-  if (map.value.getLayer('transit-caltrain')) map.value.removeLayer('transit-caltrain');
   if (map.value.getLayer('highlight-fill')) map.value.removeLayer('highlight-fill');
   if (map.value.getLayer('highlight-line')) map.value.removeLayer('highlight-line');
   if (map.value.getSource('data')) map.value.removeSource('data');
   if (map.value.getSource('public-data')) map.value.removeSource('public-data');
-  if (map.value.getSource('transit-bart')) map.value.removeSource('transit-bart');
-  if (map.value.getSource('transit-caltrain')) map.value.removeSource('transit-caltrain');
   if (map.value.getSource('highlight')) map.value.removeSource('highlight');
 
   const [geomResponse, attrResponse, fzpResponse] = await Promise.all([
@@ -432,39 +428,6 @@ async function loadDataset() {
       }
     });
 
-    const bartResponse = await fetch('/data/transit-bart.geojson');
-    const bartGeojson = await bartResponse.json();
-
-    map.value.addSource('transit-bart', { type: 'geojson', data: bartGeojson });
-
-    map.value.addLayer({
-      id: 'transit-bart',
-      type: 'circle',
-      source: 'transit-bart',
-      paint: {
-        'circle-color': '#0066ff',
-        'circle-radius': 6,
-        'circle-stroke-color': '#fff',
-        'circle-stroke-width': 2
-      }
-    });
-
-    const caltrainResponse = await fetch('/data/transit-caltrain.geojson');
-    const caltrainGeojson = await caltrainResponse.json();
-
-    map.value.addSource('transit-caltrain', { type: 'geojson', data: caltrainGeojson });
-
-    map.value.addLayer({
-      id: 'transit-caltrain',
-      type: 'circle',
-      source: 'transit-caltrain',
-      paint: {
-        'circle-color': '#0066ff',
-        'circle-radius': 6,
-        'circle-stroke-color': '#fff',
-        'circle-stroke-width': 2
-      }
-    });
   } else if (geomType.includes('Line')) {
     map.value.addLayer({
       id: 'data-line',
