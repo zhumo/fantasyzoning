@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
+import compression from 'vite-plugin-compression'
 import path from 'path'
 import fs from 'fs'
 
@@ -21,7 +22,16 @@ function serveDataPlugin() {
 }
 
 export default defineConfig({
-  plugins: [vue(), serveDataPlugin()],
+  plugins: [
+    vue(),
+    serveDataPlugin(),
+    compression({
+      algorithm: 'gzip',
+      ext: '.gz',
+      threshold: 1024,
+      filter: /\.(js|css|html|json|geojson|csv)$/i,
+    }),
+  ],
   server: {
     fs: {
       allow: [path.resolve(__dirname, '..')],

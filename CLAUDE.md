@@ -165,3 +165,21 @@ When users add upzoning rules:
 - Parcels are uniquely identified by `mapblklot` (block/lot combination)
 - Mapbox GL JS handles geometry rendering and user interactions
 - Map is bounded to San Francisco area with zoom limits (10-18)
+
+## Performance Optimizations
+
+### Geometry Simplification
+The `web/public/data/parcels.geojson` file is simplified using mapshaper (50% simplification with keep-shapes) to reduce file size from 59MB to 47MB while preserving parcel boundaries.
+
+To re-simplify from source data:
+```bash
+mapshaper data/parcels.geojson -simplify 50% keep-shapes -o web/public/data/parcels.geojson force
+```
+
+### Gzip Compression
+Production builds use `vite-plugin-compression` to generate `.gz` versions of all data files. This reduces transfer sizes significantly:
+- `parcels.geojson`: 47MB → 10MB (gzipped)
+- `parcels.csv`: 16MB → 3.1MB (gzipped)
+- `fzp-zoning.csv`: 13MB → 875KB (gzipped)
+
+Static hosting services (Netlify, Vercel, etc.) automatically serve `.gz` files when the client supports gzip.
