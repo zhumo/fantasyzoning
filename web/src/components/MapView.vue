@@ -21,6 +21,15 @@ const yourPlanLow = ref(null);
 const yourPlanHigh = ref(null);
 const calculating = ref(false);
 
+const showModal = ref(false);
+const editingRuleId = ref(null);
+const newRule = ref({
+  proposedHeight: '',
+  neighborhood: '',
+  zoningCode: '',
+  fzpHeight: ''
+});
+
 const hoveredParcelStats = computed(() => {
   if (!hoveredParcel.value || fzpZoningData.value.length === 0) return null;
 
@@ -140,23 +149,62 @@ function parseNumericCSV(text) {
   return data;
 }
 
-function addRule() {
-  userRules.value.push({
-    id: Date.now(),
-    selectionType: 'neighborhood',
-    selectionValue: '',
+function openAddRuleModal() {
+  editingRuleId.value = null;
+  newRule.value = {
     proposedHeight: '',
-    saved: false
-  });
+    neighborhood: '',
+    zoningCode: '',
+    fzpHeight: ''
+  };
+  showModal.value = true;
 }
 
-function saveRule(ruleId) {
-  const rule = userRules.value.find(r => r.id === ruleId);
-  if (rule && rule.selectionValue && rule.proposedHeight) {
-    rule.saved = true;
-    recalculateProjections();
-    updateMapColors();
+function openEditRuleModal(rule) {
+  editingRuleId.value = rule.id;
+  newRule.value = {
+    proposedHeight: rule.proposedHeight,
+    neighborhood: rule.neighborhood || '',
+    zoningCode: rule.zoningCode || '',
+    fzpHeight: rule.fzpHeight || ''
+  };
+  showModal.value = true;
+}
+
+function closeModal() {
+  showModal.value = false;
+  editingRuleId.value = null;
+}
+
+function saveRule() {
+  const height = parseInt(newRule.value.proposedHeight);
+  if (isNaN(height) || height <= 0) return;
+
+  if (editingRuleId.value) {
+    const ruleIndex = userRules.value.findIndex(r => r.id === editingRuleId.value);
+    if (ruleIndex !== -1) {
+      userRules.value[ruleIndex] = {
+        id: editingRuleId.value,
+        proposedHeight: height,
+        neighborhood: newRule.value.neighborhood || null,
+        zoningCode: newRule.value.zoningCode || null,
+        fzpHeight: newRule.value.fzpHeight || null
+      };
+    }
+  } else {
+    userRules.value.push({
+      id: Date.now(),
+      proposedHeight: height,
+      neighborhood: newRule.value.neighborhood || null,
+      zoningCode: newRule.value.zoningCode || null,
+      fzpHeight: newRule.value.fzpHeight || null
+    });
   }
+
+  showModal.value = false;
+  editingRuleId.value = null;
+  recalculateProjections();
+  updateMapColors();
 }
 
 function removeRule(ruleId) {
@@ -166,28 +214,25 @@ function removeRule(ruleId) {
 }
 
 function ruleMatchesParcel(rule, parcelAttrs) {
-  if (!rule.selectionValue) return false;
-
-  switch (rule.selectionType) {
-    case 'parcelId':
-      return parcelAttrs.mapblklot === rule.selectionValue;
-    case 'neighborhood':
-      return parcelAttrs.analysis_neighborhood === rule.selectionValue;
-    case 'zoningCode':
-      return parcelAttrs.zoning_code && parcelAttrs.zoning_code.split('|').includes(rule.selectionValue);
-    case 'fzpHeight':
-      return parcelAttrs.fzp_height_ft === rule.selectionValue;
+  if (rule.neighborhood && parcelAttrs.analysis_neighborhood !== rule.neighborhood) {
+    return false;
   }
-  return false;
+  if (rule.zoningCode && (!parcelAttrs.zoning_code || !parcelAttrs.zoning_code.split('|').includes(rule.zoningCode))) {
+    return false;
+  }
+  if (rule.fzpHeight && parcelAttrs.fzp_height_ft !== rule.fzpHeight) {
+    return false;
+  }
+  return true;
 }
 
 function getProposedHeight(parcelAttrs) {
   let maxHeight = null;
 
   for (const rule of userRules.value) {
-    if (rule.saved && ruleMatchesParcel(rule, parcelAttrs)) {
-      const height = parseFloat(rule.proposedHeight);
-      if (!isNaN(height) && (maxHeight === null || height > maxHeight)) {
+    if (ruleMatchesParcel(rule, parcelAttrs)) {
+      const height = rule.proposedHeight;
+      if (maxHeight === null || height > maxHeight) {
         maxHeight = height;
       }
     }
@@ -523,7 +568,7 @@ onMounted(() => {
     <div class="sidebar">
       <h1>Fantasy Zoning</h1>
       <p>Can you save SF from RHNA de-certification?</p>
-      <p>Target: 36,000</p>
+      <p>Target: 36,200</p>
       <div class="scenarios-table">
         <table>
           <thead>
@@ -552,70 +597,24 @@ onMounted(() => {
         <h2>Your Plan</h2>
         <p class="rules-description">Add rules to upzone parcels. When rules overlap, the tallest height wins.</p>
 
-        <div v-for="rule in userRules" :key="rule.id" class="rule-card" :class="{ saved: rule.saved }">
-          <div class="rule-row">
-            <label>Select by:</label>
-            <select v-model="rule.selectionType" @change="rule.selectionValue = ''; rule.saved = false">
-              <option value="parcelId">Parcel ID</option>
-              <option value="neighborhood">Neighborhood</option>
-              <option value="zoningCode">Zoning Code</option>
-              <option value="fzpHeight">FZP Height</option>
-            </select>
-          </div>
+        <div v-if="userRules.length === 0" class="no-rules">No rules yet. Add a rule to get started.</div>
 
-          <div class="rule-row">
-            <label>Value:</label>
-            <input
-              v-if="rule.selectionType === 'parcelId'"
-              type="text"
-              v-model="rule.selectionValue"
-              placeholder="e.g. 2993020"
-              @input="rule.saved = false"
-            />
-            <select
-              v-else-if="rule.selectionType === 'neighborhood'"
-              v-model="rule.selectionValue"
-              @change="rule.saved = false"
-            >
-              <option value="">Select neighborhood...</option>
-              <option v-for="n in NEIGHBORHOODS" :key="n" :value="n">{{ n }}</option>
-            </select>
-            <select
-              v-else-if="rule.selectionType === 'zoningCode'"
-              v-model="rule.selectionValue"
-              @change="rule.saved = false"
-            >
-              <option value="">Select zoning code...</option>
-              <option v-for="z in ZONING_CODES" :key="z" :value="z">{{ z }}</option>
-            </select>
-            <select
-              v-else-if="rule.selectionType === 'fzpHeight'"
-              v-model="rule.selectionValue"
-              @change="rule.saved = false"
-            >
-              <option value="">Select FZP height...</option>
-              <option v-for="h in FZP_HEIGHTS" :key="h" :value="h">{{ h }} ft</option>
-            </select>
+        <div v-for="rule in userRules" :key="rule.id" class="rule-item" @click="openEditRuleModal(rule)">
+          <div class="rule-summary">
+            <span class="rule-height">{{ rule.proposedHeight }} ft</span>
+            <span class="rule-criteria">
+              <template v-if="!rule.neighborhood && !rule.zoningCode && !rule.fzpHeight">all parcels</template>
+              <template v-else>
+                <span v-if="rule.neighborhood">{{ rule.neighborhood }}</span>
+                <span v-if="rule.zoningCode">{{ rule.neighborhood ? ' · ' : '' }}{{ rule.zoningCode }}</span>
+                <span v-if="rule.fzpHeight">{{ (rule.neighborhood || rule.zoningCode) ? ' · ' : '' }}{{ rule.fzpHeight }}ft FZP</span>
+              </template>
+            </span>
           </div>
-
-          <div class="rule-row">
-            <label>Proposed Height (ft):</label>
-            <input
-              type="number"
-              v-model="rule.proposedHeight"
-              placeholder="e.g. 85"
-              @input="rule.saved = false"
-            />
-          </div>
-
-          <div class="rule-actions">
-            <button v-if="!rule.saved" class="save-rule" @click="saveRule(rule.id)" :disabled="!rule.selectionValue || !rule.proposedHeight">Save Rule</button>
-            <span v-else class="saved-indicator">Saved</span>
-            <button class="delete-rule" @click="removeRule(rule.id)">Remove</button>
-          </div>
+          <button class="delete-rule-btn" @click.stop="removeRule(rule.id)">×</button>
         </div>
 
-        <button class="add-rule" @click="addRule">+ Add Rule</button>
+        <button class="add-rule" @click="openAddRuleModal">+ Add Rule</button>
 
         <div v-if="calculating" class="calculating">Calculating...</div>
       </div>
@@ -701,6 +700,55 @@ onMounted(() => {
         </div>
       </div>
     </div>
+
+    <div v-if="showModal" class="modal-overlay" @click.self="closeModal">
+      <div class="modal">
+        <div class="modal-header">
+          <h3>{{ editingRuleId ? 'Edit Rule' : 'Add Rule' }}</h3>
+          <button class="modal-close" @click="closeModal">×</button>
+        </div>
+        <div class="modal-body">
+          <div class="natural-language-form">
+            <span class="form-text">Set height</span>
+            <input
+              type="number"
+              v-model="newRule.proposedHeight"
+              class="inline-input height-input"
+              placeholder="ft"
+            />
+            <span class="form-text">ft. for all parcels</span>
+
+            <div class="criteria-row">
+              <span class="form-text">in neighborhood</span>
+              <select v-model="newRule.neighborhood" class="inline-select">
+                <option value="">any</option>
+                <option v-for="n in NEIGHBORHOODS" :key="n" :value="n">{{ n }}</option>
+              </select>
+            </div>
+
+            <div class="criteria-row">
+              <span class="form-text">with zoning code</span>
+              <select v-model="newRule.zoningCode" class="inline-select">
+                <option value="">any</option>
+                <option v-for="z in ZONING_CODES" :key="z" :value="z">{{ z }}</option>
+              </select>
+            </div>
+
+            <div class="criteria-row">
+              <span class="form-text">and FZP height</span>
+              <select v-model="newRule.fzpHeight" class="inline-select">
+                <option value="">any</option>
+                <option v-for="h in FZP_HEIGHTS" :key="h" :value="h">{{ h }} ft</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="modal-cancel" @click="closeModal">Cancel</button>
+          <button class="modal-save" @click="saveRule" :disabled="!newRule.proposedHeight">{{ editingRuleId ? 'Update Rule' : 'Save Rule' }}</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -771,14 +819,6 @@ onMounted(() => {
   margin: 0 0 12px 0;
 }
 
-.rule-card {
-  background: #fff;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  padding: 12px;
-  margin-bottom: 12px;
-}
-
 .rule-row {
   margin-bottom: 10px;
 }
@@ -807,60 +847,6 @@ onMounted(() => {
 .rule-row select:focus {
   outline: none;
   border-color: #0066ff;
-}
-
-.rule-card.saved {
-  border-color: #090;
-  background: #f0fff0;
-}
-
-.rule-actions {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-
-.save-rule {
-  flex: 1;
-  padding: 8px;
-  font-size: 13px;
-  font-weight: 600;
-  color: #fff;
-  background: #090;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.save-rule:hover {
-  background: #070;
-}
-
-.save-rule:disabled {
-  background: #ccc;
-  cursor: not-allowed;
-}
-
-.saved-indicator {
-  flex: 1;
-  text-align: center;
-  font-size: 13px;
-  font-weight: 600;
-  color: #090;
-}
-
-.delete-rule {
-  padding: 8px 12px;
-  font-size: 12px;
-  color: #c00;
-  background: #fff;
-  border: 1px solid #c00;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.delete-rule:hover {
-  background: #fee;
 }
 
 .add-rule {
@@ -1037,5 +1023,211 @@ onMounted(() => {
   width: 20px;
   height: 14px;
   border: 1px solid #999;
+}
+
+.no-rules {
+  color: #888;
+  font-size: 13px;
+  font-style: italic;
+  margin-bottom: 12px;
+}
+
+.rule-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 8px 10px;
+  margin-bottom: 8px;
+  cursor: pointer;
+}
+
+.rule-item:hover {
+  border-color: #0066ff;
+  background: #f8faff;
+}
+
+.rule-summary {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 13px;
+  flex-wrap: wrap;
+  flex: 1;
+  min-width: 0;
+}
+
+.rule-height {
+  color: #090;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.rule-criteria {
+  color: #666;
+  font-size: 12px;
+}
+
+.delete-rule-btn {
+  background: none;
+  border: none;
+  color: #999;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+}
+
+.delete-rule-btn:hover {
+  color: #c00;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.modal {
+  background: #fff;
+  border-radius: 8px;
+  width: 400px;
+  max-width: 90vw;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid #eee;
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 18px;
+  color: #333;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: #999;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0;
+}
+
+.modal-close:hover {
+  color: #333;
+}
+
+.modal-body {
+  padding: 20px;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 16px 20px;
+  border-top: 1px solid #eee;
+}
+
+.modal-cancel {
+  padding: 10px 20px;
+  font-size: 14px;
+  color: #666;
+  background: #f5f5f5;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.modal-cancel:hover {
+  background: #eee;
+}
+
+.modal-save {
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  background: #0066ff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.modal-save:hover {
+  background: #0055dd;
+}
+
+.modal-save:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+.natural-language-form {
+  font-size: 15px;
+  line-height: 2.2;
+  color: #333;
+}
+
+.form-text {
+  color: #333;
+}
+
+.inline-input {
+  border: none;
+  border-bottom: 2px solid #0066ff;
+  padding: 4px 8px;
+  font-size: 15px;
+  background: #f8f8f8;
+  border-radius: 2px 2px 0 0;
+  color: #333;
+}
+
+.inline-input:focus {
+  outline: none;
+  background: #fff;
+}
+
+.height-input {
+  width: 60px;
+  text-align: center;
+}
+
+.criteria-row {
+  display: block;
+  margin-top: 4px;
+}
+
+.inline-select {
+  border: none;
+  border-bottom: 2px solid #0066ff;
+  padding: 4px 8px;
+  font-size: 15px;
+  background: #f8f8f8;
+  border-radius: 2px 2px 0 0;
+  color: #333;
+  cursor: pointer;
+  min-width: 120px;
+}
+
+.inline-select:focus {
+  outline: none;
+  background: #fff;
 }
 </style>

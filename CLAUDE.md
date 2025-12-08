@@ -77,9 +77,9 @@ The app currently displays:
 - **Hover tooltip**: Shows address, zoning, supervisor, and height info
 - **Sidebar**: Displays FZP vs Your Plan projections table
 - **Your Plan Rules**: Users can add upzoning rules to create custom housing plans
-  - Select parcels by: Parcel ID, Neighborhood, Zoning Code, or FZP Height
-  - Set proposed height for matching parcels
-  - When rules overlap, tallest height wins
+  - Rules use natural language format: "Set height X for all parcels in neighborhood Y with zoning code Z and FZP height W"
+  - Each criterion (neighborhood, zoning code, FZP height) defaults to "any" - parcels must match ALL specified criteria (AND logic)
+  - When multiple rules match a parcel, the tallest height wins
   - Projections recalculate automatically using UnitCalculator
 
 ## Key Data Files
