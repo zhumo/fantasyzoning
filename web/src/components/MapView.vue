@@ -405,12 +405,18 @@ async function loadDataset() {
         'fill-color': [
           'step',
           ['to-number', ['get', 'effective_height'], 0],
-          'transparent',
-          45, '#c7e9b4',
-          65, '#7fcdbb',
-          85, '#41b6c4',
-          105, '#2c7fb8',
-          150, '#253494'
+          '#ffffff',
+          46, '#d9f0a3',
+          56, '#addd8e',
+          66, '#78c679',
+          86, '#41ab5d',
+          106, '#238b45',
+          131, '#41b6c4',
+          161, '#1d91c0',
+          201, '#225ea8',
+          251, '#6a51a3',
+          401, '#88419d',
+          701, '#810f7c'
         ],
         'fill-opacity': 1
       }
@@ -683,28 +689,52 @@ onMounted(() => {
         <div class="legend-title">Height (ft)</div>
         <div class="legend-items">
           <div class="legend-item">
-            <span class="legend-color" style="background: transparent; border: 1px solid #ccc;"></span>
+            <span class="legend-color" style="background: #ffffff; border: 1px solid #ccc;"></span>
             <span>0-45</span>
           </div>
           <div class="legend-item">
-            <span class="legend-color" style="background: #c7e9b4;"></span>
-            <span>45-65</span>
+            <span class="legend-color" style="background: #d9f0a3;"></span>
+            <span>46-55</span>
           </div>
           <div class="legend-item">
-            <span class="legend-color" style="background: #7fcdbb;"></span>
-            <span>65-85</span>
+            <span class="legend-color" style="background: #addd8e;"></span>
+            <span>56-65</span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-color" style="background: #78c679;"></span>
+            <span>66-85</span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-color" style="background: #41ab5d;"></span>
+            <span>86-105</span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-color" style="background: #238b45;"></span>
+            <span>106-130</span>
           </div>
           <div class="legend-item">
             <span class="legend-color" style="background: #41b6c4;"></span>
-            <span>85-105</span>
+            <span>131-160</span>
           </div>
           <div class="legend-item">
-            <span class="legend-color" style="background: #2c7fb8;"></span>
-            <span>105-150</span>
+            <span class="legend-color" style="background: #1d91c0;"></span>
+            <span>161-200</span>
           </div>
           <div class="legend-item">
-            <span class="legend-color" style="background: #253494;"></span>
-            <span>150+</span>
+            <span class="legend-color" style="background: #225ea8;"></span>
+            <span>201-250</span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-color" style="background: #6a51a3;"></span>
+            <span>251-400</span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-color" style="background: #88419d;"></span>
+            <span>401-700</span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-color" style="background: #810f7c;"></span>
+            <span>701+</span>
           </div>
         </div>
       </div>

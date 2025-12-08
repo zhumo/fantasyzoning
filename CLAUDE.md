@@ -86,7 +86,9 @@ The app currently displays:
 
 **Source data (`data/` directory):**
 - `parcels.geojson` (59MB) - Raw parcel geometries
-- `parcels.csv` - Raw parcel attributes
+- `parcels.csv` (16MB) - Raw parcel attributes with `current_height_ft` and `fzp_height_ft` columns
+- `zoning-heights.csv` - Height district polygons with `height` (district code) and `gen_hght` (base height in feet)
+- `fzp-zoning.csv` - Parcel data for projection model (contains model coefficients)
 - `public-parcels.geojson` (5.6MB) - Public parcels subset
 - Transit files: `transit-bart.geojson`, `transit-caltrain.geojson`
 
@@ -119,6 +121,13 @@ Display fields:
 - `zoning_code` - Current zoning code (e.g., "RH-2")
 - `zoning_district` - Full zoning name
 - `blklots` - Associated block/lots
+- `current_height_ft` - Current allowed height in feet
+- `fzp_height_ft` - Family Zoning Plan allowed height in feet
+
+**Height data sources:**
+- For FZP-affected parcels: heights come from FZP proposal data
+- For non-FZP parcels: heights filled via geospatial join with `zoning-heights.csv` (current = FZP since unchanged)
+- ~831 parcels remain without height data (edge cases: waterfront, piers, missing zoning)
 
 Model fields (for unit projection, null for ~60k parcels excluded from model):
 - `Height_Ft`, `Area_1000`, `Env_1000_Area_Height` - Envelope dimensions
