@@ -4,7 +4,7 @@ Fantasy Zoning exists to allow users to create versions of San Francisco zoning 
 This tool allows users to decide which areas to upzone and uses the City Economist's reported methodolog to project the number of units expected to be generated under the user's proposed plan.
 
 # How to use
-The application is hosted at [TODO INSERT URL HERE]. Please use it on a laptop screen, large tablet, or monitor as this application is not designed for phones.
+The application is hosted (here)[fantasyzoning.mozhu.io]. Please use it on a laptop screen, large tablet, or monitor as this application is not designed for phones.
 
 Users will be able to enter upzoning criteria on the left side of the screen and the effect (expected number of units built) will be displayed numerically on the bottom and visually on the map, where the more intense the color, the higher the height increase.
 
