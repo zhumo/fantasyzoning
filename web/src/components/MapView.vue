@@ -10,6 +10,7 @@ const currentIndex = ref(0);
 const featureCount = ref(0);
 const properties = ref([]);
 const loading = ref(false);
+const mapRendering = ref(false);
 const hoveredParcel = ref(null);
 const hoveredFeature = ref(null);
 const tooltipPosition = ref({ x: 0, y: 0 });
@@ -23,6 +24,7 @@ const calculating = ref(false);
 
 const showModal = ref(false);
 const editingRuleId = ref(null);
+const savingRule = ref(false);
 const newRule = ref({
   proposedHeight: '',
   neighborhood: '',
@@ -176,9 +178,13 @@ function closeModal() {
   editingRuleId.value = null;
 }
 
-function saveRule() {
+async function saveRule() {
   const height = parseInt(newRule.value.proposedHeight);
   if (isNaN(height) || height <= 0) return;
+
+  savingRule.value = true;
+
+  await new Promise(resolve => setTimeout(resolve, 0));
 
   if (editingRuleId.value) {
     const ruleIndex = userRules.value.findIndex(r => r.id === editingRuleId.value);
@@ -201,16 +207,26 @@ function saveRule() {
     });
   }
 
+  recalculateProjections();
+  updateMapColors();
+
+  savingRule.value = false;
   showModal.value = false;
   editingRuleId.value = null;
-  recalculateProjections();
-  updateMapColors();
 }
 
-function removeRule(ruleId) {
+async function removeRule(ruleId) {
+  mapRendering.value = true;
   userRules.value = userRules.value.filter(r => r.id !== ruleId);
+
+  await new Promise(resolve => setTimeout(resolve, 0));
+
   recalculateProjections();
   updateMapColors();
+
+  map.value.once('idle', () => {
+    mapRendering.value = false;
+  });
 }
 
 function ruleMatchesParcel(rule, parcelAttrs) {
@@ -312,6 +328,7 @@ async function loadDataset() {
   if (!map.value) return;
 
   loading.value = true;
+  mapRendering.value = true;
   const dataset = currentDataset();
 
   if (map.value.getLayer('data-fill')) map.value.removeLayer('data-fill');
@@ -487,6 +504,11 @@ async function loadDataset() {
   setupInteractions(geojson);
   recalculateProjections();
   loading.value = false;
+
+  mapRendering.value = true;
+  map.value.once('idle', () => {
+    mapRendering.value = false;
+  });
 }
 
 function setupInteractions(geojson) {
@@ -632,6 +654,10 @@ onMounted(() => {
       </div>
     </div>
     <div class="map-wrapper">
+      <div v-if="mapRendering" class="map-loading-overlay">
+        <div class="spinner"></div>
+        <div class="loading-text">Loading parcels...</div>
+      </div>
       <div ref="mapContainer" class="map-container">
       <div v-if="hoveredParcel" class="tooltip" :style="{ left: tooltipPosition.x + 15 + 'px', top: tooltipPosition.y + 15 + 'px' }">
         <table>
@@ -760,8 +786,11 @@ onMounted(() => {
           </div>
         </div>
         <div class="modal-footer">
-          <button class="modal-cancel" @click="closeModal">Cancel</button>
-          <button class="modal-save" @click="saveRule" :disabled="!newRule.proposedHeight">{{ editingRuleId ? 'Update Rule' : 'Save Rule' }}</button>
+          <button class="modal-cancel" @click="closeModal" :disabled="savingRule">Cancel</button>
+          <button class="modal-save" @click="saveRule" :disabled="!newRule.proposedHeight || savingRule">
+            <span v-if="savingRule" class="button-spinner"></span>
+            {{ savingRule ? 'Calculating...' : (editingRuleId ? 'Update Rule' : 'Save Rule') }}
+          </button>
         </div>
       </div>
     </div>
@@ -1274,5 +1303,52 @@ onMounted(() => {
 .inline-select:focus {
   outline: none;
   background: #fff;
+}
+
+.map-loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.85);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 20;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #e0e0e0;
+  border-top-color: #0066ff;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.loading-text {
+  margin-top: 12px;
+  font-size: 14px;
+  color: #666;
+}
+
+.button-spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 </style>
