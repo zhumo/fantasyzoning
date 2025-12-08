@@ -133,23 +133,28 @@ function parseCSV(text) {
   return data;
 }
 
-function parseNumericCSV(text) {
-  const lines = text.split('\n');
-  const headers = parseCSVLine(lines[0]);
-  const data = [];
+const FZP_NUMERIC_FIELDS = [
+  'SDB_2016_5Plus', 'SDB_2016_5Plus_EnvFull', 'Zoning_DR_EnvFull', 'Height_Ft',
+  'Area_1000', 'Env_1000_Area_Height', 'Bldg_SqFt_1000', 'Res_Dummy', 'Historic',
+  'zp_OfficeComm', 'zp_DRMulti_RTO', 'zp_FBDMulti_RTO', 'zp_PDRInd', 'zp_Public',
+  'zp_Redev', 'zp_RH2', 'zp_RH3_RM1', 'DIST_SBayshore', 'DIST_BernalHts',
+  'DIST_Scentral', 'DIST_Central', 'DIST_BuenaVista', 'DIST_Northeast',
+  'DIST_WestAddition', 'DIST_SOMA', 'DIST_InnerSunset', 'DIST_Richmond',
+  'DIST_Ingleside', 'DIST_OuterSunset', 'DIST_Marina', 'DIST_Mission',
+  'fzp_expected_units_low', 'fzp_expected_units_high'
+];
 
-  for (let i = 1; i < lines.length; i++) {
-    if (!lines[i].trim()) continue;
-    const values = parseCSVLine(lines[i]);
-    const row = {};
-    headers.forEach((header, index) => {
-      const val = values[index] || '';
-      row[header] = header === 'BlockLot' ? val : (parseFloat(val) || 0);
-    });
-    data.push(row);
+function extractFzpData(attributes) {
+  const fzpData = [];
+  for (const row of attributes) {
+    if (!row.Height_Ft || row.Height_Ft === '') continue;
+    const fzpRow = { BlockLot: row.mapblklot, unitsCache: {} };
+    for (const field of FZP_NUMERIC_FIELDS) {
+      fzpRow[field] = parseFloat(row[field]) || 0;
+    }
+    fzpData.push(fzpRow);
   }
-
-  return data;
+  return fzpData;
 }
 
 function openAddRuleModal() {
@@ -345,22 +350,16 @@ async function loadDataset() {
   if (map.value.getSource('public-data')) map.value.removeSource('public-data');
   if (map.value.getSource('highlight')) map.value.removeSource('highlight');
 
-  const [geomResponse, attrResponse, fzpResponse] = await Promise.all([
+  const [geomResponse, attrResponse] = await Promise.all([
     fetch(`/data/${dataset.file}`),
-    fetch(`/data/${dataset.attributesFile}`),
-    fetch('/data/fzp-zoning.csv')
+    fetch(`/data/${dataset.attributesFile}`)
   ]);
 
   const geometries = await geomResponse.json();
   const attributesText = await attrResponse.text();
   const attributes = parseCSV(attributesText);
 
-  const fzpText = await fzpResponse.text();
-  const parsedFzpData = parseNumericCSV(fzpText);
-  parsedFzpData.forEach(parcel => {
-    parcel.unitsCache = {};
-  });
-  fzpZoningData.value = parsedFzpData;
+  fzpZoningData.value = extractFzpData(attributes);
 
   const attributesMap = new Map();
   attributes.forEach(attr => {
