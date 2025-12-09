@@ -23,6 +23,7 @@ const yourPlanHigh = ref(null);
 const calculating = ref(false);
 
 const showModal = ref(false);
+const showInfoModal = ref(false);
 const editingRuleId = ref(null);
 const savingRule = ref(false);
 const newRule = ref({
@@ -176,6 +177,10 @@ function openEditRuleModal(rule) {
 function closeModal() {
   showModal.value = false;
   editingRuleId.value = null;
+}
+
+function toggleInfoModal() {
+  showInfoModal.value = !showInfoModal.value;
 }
 
 async function saveRule() {
@@ -565,7 +570,10 @@ onMounted(() => {
   <div class="container">
     <div class="main-content">
       <div class="sidebar">
-      <h1>Fantasy Zoning</h1>
+      <div class="header-with-info">
+        <h1>Fantasy Zoning</h1>
+        <button class="info-icon" @click="toggleInfoModal" title="About this app">?</button>
+      </div>
       <p>Can you save SF from RHNA de-certification?</p>
       <p>Target: 36,200</p>
       <div class="scenarios-table">
@@ -757,6 +765,40 @@ onMounted(() => {
         </div>
       </div>
     </div>
+
+    <div v-if="showInfoModal" class="modal-overlay" @click.self="toggleInfoModal">
+      <div class="modal info-modal">
+        <div class="modal-header">
+          <h3>What is Fantasy Zoning?</h3>
+          <button class="modal-close" @click="toggleInfoModal">×</button>
+        </div>
+        <div class="modal-body info-modal-body">
+          <ol class="info-list">
+            <li>
+              <strong>San Francisco must upzone</strong> to meet the state's RHNA (Regional Housing Needs Allocation) requirements. If the City fails to comply, it risks losing local control over housing decisions and facing state intervention.
+            </li>
+            <li>
+              <strong>SF passed the Family Zoning Plan (FZP)</strong> in 2025, which aims to meet our RHNA goal of producing 36,200 new housing units.
+            </li>
+            <li>
+              <strong>However, the City Economist has projected</strong> that in the best case scenario, the FZP would only meet approximately 50% of our goal (generating 8,000-18,000 units instead of the required 36,200).
+            </li>
+            <li>
+              <strong>This app allows you to test</strong> what kinds of upzoning programs will allow SF to meet its goal. You can create custom zoning rules by specifying height limits for different neighborhoods, zoning codes, and FZP heights. The app uses the City Economist's predictive model to project expected housing production under your plan.
+            </li>
+            <li>
+              <strong>Current limitations</strong> (working on fixing these): Does not work on the east side of the city—only the parts where the FZP was applied. Does not allow for upzoning within a specific distance of landmarks such as transit stops and grocery stores.
+            </li>
+            <li>
+              <strong>Made by Mo Zhu.</strong> View the source code and learn more at <a href="https://www.github.com/zhumo/fantasyzoning" target="_blank">github.com/zhumo/fantasyzoning</a>
+            </li>
+          </ol>
+        </div>
+        <div class="modal-footer">
+          <button class="modal-save" @click="toggleInfoModal">Got it</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -782,9 +824,44 @@ onMounted(() => {
   color: #333;
 }
 
+.header-with-info {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
 .sidebar h1 {
-  margin: 0 0 16px 0;
+  margin: 0;
   font-size: 24px;
+}
+
+.info-icon {
+  width: 22px;
+  height: 22px;
+  min-width: 22px;
+  min-height: 22px;
+  padding: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: #0066ff;
+  border: 2px solid #0066ff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.2s;
+  box-sizing: border-box;
+}
+
+.info-icon:hover {
+  background: #f0f7ff;
+  border-color: #0055dd;
+  color: #0055dd;
 }
 
 .scenarios-table {
@@ -1313,5 +1390,40 @@ onMounted(() => {
   to {
     transform: rotate(360deg);
   }
+}
+
+.info-modal {
+  max-width: 600px;
+  width: 90vw;
+}
+
+.info-modal-body {
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.info-list {
+  margin: 0;
+  padding-left: 20px;
+  line-height: 1.6;
+}
+
+.info-list li {
+  margin-bottom: 16px;
+  color: #333;
+  font-size: 14px;
+}
+
+.info-list li:last-child {
+  margin-bottom: 0;
+}
+
+.info-list a {
+  color: #0066ff;
+  text-decoration: none;
+}
+
+.info-list a:hover {
+  text-decoration: underline;
 }
 </style>
