@@ -45,7 +45,7 @@ const hoveredParcelStats = computed(() => {
   const modifiedParcel = { ...fzpParcel };
   if (proposedHeight > fzpParcel.Height_Ft) {
     modifiedParcel.Height_Ft = proposedHeight;
-    modifiedParcel.Env_1000_Area_Height = fzpParcel.Area_1000 * proposedHeight;
+    modifiedParcel.Env_1000_Area_Height = fzpParcel.Area_1000 * proposedHeight / 10;
     modifiedParcel.SDB_2016_5Plus_EnvFull = fzpParcel.SDB_2016_5Plus * modifiedParcel.Env_1000_Area_Height;
   }
 
@@ -270,7 +270,7 @@ function calcExpectedUnitsWithCache(parcel, height, scenario) {
 
   const modifiedParcel = { ...parcel };
   modifiedParcel.Height_Ft = height;
-  modifiedParcel.Env_1000_Area_Height = parcel.Area_1000 * height;
+  modifiedParcel.Env_1000_Area_Height = parcel.Area_1000 * height / 10;
   modifiedParcel.SDB_2016_5Plus_EnvFull = parcel.SDB_2016_5Plus * modifiedParcel.Env_1000_Area_Height;
 
   const result = UnitCalculator.calcExpectedUnits(modifiedParcel, scenario);
