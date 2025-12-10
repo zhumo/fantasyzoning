@@ -127,8 +127,9 @@ The app uses the City Economist's predictive model (see `web/src/unitCalculator.
 
 - **Probability model**: Logistic regression predicting probability of redevelopment over 20 years
 - **Units model**: Linear model predicting units if redeveloped based on envelope, zoning, SDB status
-- **Key inputs**: Height_Ft, Area_1000, Env_1000_Area_Height (area * height), zoning type flags, district flags
+- **Key inputs**: Height_Ft, Area_1000, Env_1000_Area_Height (area * height / 10), zoning type flags, district flags
 - **Outputs**: Low growth and high growth expected unit counts
+- **Important**: Env_1000_Area_Height must be calculated as `Area_1000 * Height_Ft / 10` to match the source data format
 
 ### Caching Strategy
 
