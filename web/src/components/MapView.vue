@@ -656,7 +656,7 @@ onMounted(() => {
             </tr>
             <tr>
               <td class="key">Supervisor</td>
-              <td class="value">{{ hoveredParcel.supname }} (D{{ hoveredParcel.supervisor_district }})</td>
+              <td class="value">{{ hoveredParcel.supname }} (D{{ Math.floor(hoveredParcel.supervisor_district) }})</td>
             </tr>
             <tr v-if="hoveredParcel.mapblklot">
               <td class="key">Parcel ID</td>
