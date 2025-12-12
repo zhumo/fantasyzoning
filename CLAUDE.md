@@ -74,7 +74,7 @@ The app currently displays:
 - **Parcel map**: All SF parcels rendered with Mapbox GL JS, colored by height
 - **Public parcels**: Highlighted with green fill and stripe pattern for non-PUBLIC zoning
 - **Transit stations**: BART and Caltrain stations as blue circles
-- **Hover tooltip**: Shows address, zoning, supervisor (with district number as integer), and height info
+- **Hover tooltip**: Shows address, zoning, supervisor (with district number as integer), and height info (all heights displayed as integers)
 - **Sidebar**: Displays FZP vs Your Plan projections table
 - **Your Plan Rules**: Users can add upzoning rules to create custom housing plans
   - Rules use natural language format: "Set height X for all parcels in neighborhood Y with zoning code Z and FZP height W"
