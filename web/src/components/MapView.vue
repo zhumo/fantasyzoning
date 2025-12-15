@@ -30,8 +30,11 @@ const newRule = ref({
   proposedHeight: '',
   neighborhood: '',
   zoningCode: '',
-  fzpHeight: ''
+  fzpHeight: '',
+  transitDistance: ''
 });
+
+const transitStops = ref([]);
 
 const hoveredParcelStats = computed(() => {
   if (!hoveredParcel.value || fzpZoningData.value.length === 0) return null;
@@ -87,6 +90,13 @@ const ZONING_CODES = [
 const FZP_HEIGHTS = [
   '40', '45', '50', '55', '60', '65', '70', '80', '85', '100', '105',
   '120', '130', '140', '160', '180', '240', '250', '300', '350', '450', '500', '650'
+];
+
+const TRANSIT_DISTANCES = [
+  { value: '0.25', label: '1/4 mile' },
+  { value: '0.5', label: '1/2 mile' },
+  { value: '0.75', label: '3/4 mile' },
+  { value: '1', label: '1 mile' }
 ];
 
 const datasets = [
@@ -158,7 +168,8 @@ function openAddRuleModal() {
     proposedHeight: '',
     neighborhood: '',
     zoningCode: '',
-    fzpHeight: ''
+    fzpHeight: '',
+    transitDistance: ''
   };
   showModal.value = true;
 }
@@ -169,7 +180,8 @@ function openEditRuleModal(rule) {
     proposedHeight: rule.proposedHeight,
     neighborhood: rule.neighborhood || '',
     zoningCode: rule.zoningCode || '',
-    fzpHeight: rule.fzpHeight || ''
+    fzpHeight: rule.fzpHeight || '',
+    transitDistance: rule.transitDistance || ''
   };
   showModal.value = true;
 }
@@ -199,7 +211,8 @@ async function saveRule() {
         proposedHeight: height,
         neighborhood: newRule.value.neighborhood || null,
         zoningCode: newRule.value.zoningCode || null,
-        fzpHeight: newRule.value.fzpHeight || null
+        fzpHeight: newRule.value.fzpHeight || null,
+        transitDistance: newRule.value.transitDistance || null
       };
     }
   } else {
@@ -208,7 +221,8 @@ async function saveRule() {
       proposedHeight: height,
       neighborhood: newRule.value.neighborhood || null,
       zoningCode: newRule.value.zoningCode || null,
-      fzpHeight: newRule.value.fzpHeight || null
+      fzpHeight: newRule.value.fzpHeight || null,
+      transitDistance: newRule.value.transitDistance || null
     });
   }
 
@@ -234,6 +248,33 @@ async function removeRule(ruleId) {
   });
 }
 
+// Haversine distance in miles between two lat/lng points
+function haversineDistance(lat1, lon1, lat2, lon2) {
+  const R = 3958.8; // Earth's radius in miles
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+function isParcelNearTransit(parcelAttrs, maxDistanceMiles) {
+  if (!parcelAttrs.centroid_lat || !parcelAttrs.centroid_lon) return false;
+
+  const parcelLat = parseFloat(parcelAttrs.centroid_lat);
+  const parcelLon = parseFloat(parcelAttrs.centroid_lon);
+
+  for (const stop of transitStops.value) {
+    const distance = haversineDistance(parcelLat, parcelLon, stop.lat, stop.lon);
+    if (distance <= maxDistanceMiles) {
+      return true;
+    }
+  }
+  return false;
+}
+
 function ruleMatchesParcel(rule, parcelAttrs) {
   if (rule.neighborhood && parcelAttrs.analysis_neighborhood !== rule.neighborhood) {
     return false;
@@ -242,6 +283,9 @@ function ruleMatchesParcel(rule, parcelAttrs) {
     return false;
   }
   if (rule.fzpHeight && parcelAttrs.fzp_height_ft !== rule.fzpHeight) {
+    return false;
+  }
+  if (rule.transitDistance && !isParcelNearTransit(parcelAttrs, parseFloat(rule.transitDistance))) {
     return false;
   }
   return true;
@@ -329,6 +373,29 @@ function updateMapColors() {
 }
 
 
+// Calculate centroid of a polygon/multipolygon geometry
+function calculateCentroid(geometry) {
+  let coords = [];
+  if (geometry.type === 'Polygon') {
+    coords = geometry.coordinates[0];
+  } else if (geometry.type === 'MultiPolygon') {
+    // Use the first polygon's exterior ring
+    coords = geometry.coordinates[0][0];
+  } else {
+    return null;
+  }
+
+  let sumLat = 0, sumLon = 0;
+  for (const coord of coords) {
+    sumLon += coord[0];
+    sumLat += coord[1];
+  }
+  return {
+    lon: sumLon / coords.length,
+    lat: sumLat / coords.length
+  };
+}
+
 async function loadDataset() {
   if (!map.value) return;
 
@@ -341,14 +408,23 @@ async function loadDataset() {
   if (map.value.getLayer('public-fill')) map.value.removeLayer('public-fill');
   if (map.value.getLayer('highlight-fill')) map.value.removeLayer('highlight-fill');
   if (map.value.getLayer('highlight-line')) map.value.removeLayer('highlight-line');
+  if (map.value.getLayer('transit-bart')) map.value.removeLayer('transit-bart');
+  if (map.value.getLayer('transit-caltrain')) map.value.removeLayer('transit-caltrain');
+  if (map.value.getLayer('transit-muni')) map.value.removeLayer('transit-muni');
   if (map.value.getSource('data')) map.value.removeSource('data');
   if (map.value.getSource('public-data')) map.value.removeSource('public-data');
   if (map.value.getSource('highlight')) map.value.removeSource('highlight');
+  if (map.value.getSource('transit-bart')) map.value.removeSource('transit-bart');
+  if (map.value.getSource('transit-caltrain')) map.value.removeSource('transit-caltrain');
+  if (map.value.getSource('transit-muni')) map.value.removeSource('transit-muni');
 
-  const [geomResponse, attrResponse, fzpResponse] = await Promise.all([
+  const [geomResponse, attrResponse, fzpResponse, bartResponse, caltrainResponse, muniResponse] = await Promise.all([
     fetch(`/data/${dataset.file}`),
     fetch(`/data/${dataset.attributesFile}`),
-    fetch('/data/fzp-zoning.csv')
+    fetch('/data/fzp-zoning.csv'),
+    fetch('/data/transit-bart.geojson'),
+    fetch('/data/transit-caltrain.geojson'),
+    fetch('/data/transit-muni.geojson')
   ]);
 
   const geometries = await geomResponse.json();
@@ -361,6 +437,43 @@ async function loadDataset() {
     parcel.unitsCache = {};
   });
   fzpZoningData.value = parsedFzpData;
+
+  // Load and process transit data
+  const bartGeojson = await bartResponse.json();
+  const caltrainGeojson = await caltrainResponse.json();
+  const muniGeojson = await muniResponse.json();
+
+  // Extract transit stops into a flat array for distance calculations
+  const allTransitStops = [];
+
+  bartGeojson.features.forEach(f => {
+    allTransitStops.push({
+      name: f.properties.Name,
+      type: 'BART',
+      lat: f.geometry.coordinates[1],
+      lon: f.geometry.coordinates[0]
+    });
+  });
+
+  caltrainGeojson.features.forEach(f => {
+    allTransitStops.push({
+      name: f.properties.stop_name,
+      type: 'Caltrain',
+      lat: f.geometry.coordinates[1],
+      lon: f.geometry.coordinates[0]
+    });
+  });
+
+  muniGeojson.features.forEach(f => {
+    allTransitStops.push({
+      name: f.properties.stop_name,
+      type: 'Muni',
+      lat: f.geometry.coordinates[1],
+      lon: f.geometry.coordinates[0]
+    });
+  });
+
+  transitStops.value = allTransitStops;
 
   const attributesMap = new Map();
   attributes.forEach(attr => {
@@ -375,6 +488,18 @@ async function loadDataset() {
       feature.properties = { ...feature.properties, ...attrs };
     }
     feature.properties.effective_height = parseFloat(feature.properties.fzp_height_ft) || parseFloat(feature.properties.current_height_ft) || 0;
+
+    // Calculate and store centroid for distance calculations
+    const centroid = calculateCentroid(feature.geometry);
+    if (centroid) {
+      feature.properties.centroid_lat = centroid.lat;
+      feature.properties.centroid_lon = centroid.lon;
+      // Also update attributesMap for use in recalculateProjections
+      if (attrs) {
+        attrs.centroid_lat = centroid.lat;
+        attrs.centroid_lon = centroid.lon;
+      }
+    }
   });
 
   const geojson = geometries;
@@ -430,6 +555,50 @@ async function loadDataset() {
       paint: {
         'fill-color': 'transparent',
         'fill-opacity': 0
+      }
+    });
+
+    // Add transit stop layers
+    map.value.addSource('transit-bart', { type: 'geojson', data: bartGeojson });
+    map.value.addSource('transit-caltrain', { type: 'geojson', data: caltrainGeojson });
+    map.value.addSource('transit-muni', { type: 'geojson', data: muniGeojson });
+
+    // BART stations - blue circles
+    map.value.addLayer({
+      id: 'transit-bart',
+      type: 'circle',
+      source: 'transit-bart',
+      paint: {
+        'circle-color': '#0066cc',
+        'circle-radius': 8,
+        'circle-stroke-color': '#fff',
+        'circle-stroke-width': 2
+      }
+    });
+
+    // Caltrain stations - red circles
+    map.value.addLayer({
+      id: 'transit-caltrain',
+      type: 'circle',
+      source: 'transit-caltrain',
+      paint: {
+        'circle-color': '#cc0000',
+        'circle-radius': 8,
+        'circle-stroke-color': '#fff',
+        'circle-stroke-width': 2
+      }
+    });
+
+    // Muni stops - orange circles (smaller since there are many)
+    map.value.addLayer({
+      id: 'transit-muni',
+      type: 'circle',
+      source: 'transit-muni',
+      paint: {
+        'circle-color': '#ff9900',
+        'circle-radius': 5,
+        'circle-stroke-color': '#fff',
+        'circle-stroke-width': 1
       }
     });
 
@@ -608,11 +777,12 @@ onMounted(() => {
           <div class="rule-summary">
             <span class="rule-height">{{ rule.proposedHeight }} ft</span>
             <span class="rule-criteria">
-              <template v-if="!rule.neighborhood && !rule.zoningCode && !rule.fzpHeight">all parcels</template>
+              <template v-if="!rule.neighborhood && !rule.zoningCode && !rule.fzpHeight && !rule.transitDistance">all parcels</template>
               <template v-else>
                 <span v-if="rule.neighborhood">{{ rule.neighborhood }}</span>
                 <span v-if="rule.zoningCode">{{ rule.neighborhood ? ' · ' : '' }}{{ rule.zoningCode }}</span>
                 <span v-if="rule.fzpHeight">{{ (rule.neighborhood || rule.zoningCode) ? ' · ' : '' }}{{ rule.fzpHeight }}ft FZP</span>
+                <span v-if="rule.transitDistance">{{ (rule.neighborhood || rule.zoningCode || rule.fzpHeight) ? ' · ' : '' }}{{ rule.transitDistance }}mi transit</span>
               </template>
             </span>
           </div>
@@ -708,6 +878,21 @@ onMounted(() => {
             <span>150+</span>
           </div>
         </div>
+        <div class="legend-title" style="margin-top: 12px;">Transit Stops</div>
+        <div class="legend-items">
+          <div class="legend-item">
+            <span class="legend-color legend-circle" style="background: #0066cc;"></span>
+            <span>BART</span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-color legend-circle" style="background: #cc0000;"></span>
+            <span>Caltrain</span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-color legend-circle" style="background: #ff9900;"></span>
+            <span>Muni</span>
+          </div>
+        </div>
       </div>
       </div>
       </div>
@@ -752,6 +937,14 @@ onMounted(() => {
               <select v-model="newRule.fzpHeight" class="inline-select">
                 <option value="">any</option>
                 <option v-for="h in FZP_HEIGHTS" :key="h" :value="h">{{ h }} ft</option>
+              </select>
+            </div>
+
+            <div class="criteria-row">
+              <span class="form-text">within distance of transit stop</span>
+              <select v-model="newRule.transitDistance" class="inline-select">
+                <option value="">any</option>
+                <option v-for="d in TRANSIT_DISTANCES" :key="d.value" :value="d.value">{{ d.label }}</option>
               </select>
             </div>
           </div>
@@ -1137,6 +1330,12 @@ onMounted(() => {
   width: 20px;
   height: 14px;
   border: 1px solid #999;
+}
+
+.legend-circle {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
 }
 
 .no-rules {
