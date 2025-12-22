@@ -33,18 +33,6 @@ const newRule = ref({
   fzpHeight: ''
 });
 
-const NEIGHBORHOODS = [
-  'Bayview Hunters Point', 'Bernal Heights', 'Castro/Upper Market', 'Chinatown',
-  'Excelsior', 'Financial District/South Beach', 'Glen Park', 'Golden Gate Park',
-  'Haight Ashbury', 'Hayes Valley', 'Inner Richmond', 'Inner Sunset', 'Japantown',
-  'Lakeshore', 'Lincoln Park', 'Lone Mountain/USF', 'Marina', 'McLaren Park',
-  'Mission', 'Mission Bay', 'Nob Hill', 'Noe Valley', 'North Beach',
-  'Oceanview/Merced/Ingleside', 'Outer Mission', 'Outer Richmond', 'Pacific Heights',
-  'Portola', 'Potrero Hill', 'Presidio', 'Presidio Heights', 'Russian Hill',
-  'Seacliff', 'South of Market', 'Sunset/Parkside', 'Tenderloin', 'Treasure Island',
-  'Twin Peaks', 'Visitacion Valley', 'West of Twin Peaks', 'Western Addition'
-];
-
 function haversineDistance(lat1, lon1, lat2, lon2) {
   const R = 3958.8; // Radius of the Earth in miles
   const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -55,6 +43,25 @@ function haversineDistance(lat1, lon1, lat2, lon2) {
     Math.sin(dLon / 2) * Math.sin(dLon / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c * 5280; // Return distance in feet
+}
+
+function getCentroid(geometry) {
+  let ring = [];
+  if (geometry.type === 'Polygon') {
+    ring = geometry.coordinates[0];
+  } else if (geometry.type === 'MultiPolygon') {
+    ring = geometry.coordinates[0][0];
+  }
+  
+  if (!ring || ring.length === 0) return null;
+  
+  let sumLat = 0;
+  let sumLon = 0;
+  for (const [lon, lat] of ring) {
+    sumLat += lat;
+    sumLon += lon;
+  }
+  return { lat: sumLat / ring.length, lon: sumLon / ring.length };
 }
 
 const hoveredParcelStats = computed(() => {
@@ -83,6 +90,18 @@ const hoveredParcelStats = computed(() => {
     units: units.toFixed(1)
   };
 });
+
+const NEIGHBORHOODS = [
+  'Bayview Hunters Point', 'Bernal Heights', 'Castro/Upper Market', 'Chinatown',
+  'Excelsior', 'Financial District/South Beach', 'Glen Park', 'Golden Gate Park',
+  'Haight Ashbury', 'Hayes Valley', 'Inner Richmond', 'Inner Sunset', 'Japantown',
+  'Lakeshore', 'Lincoln Park', 'Lone Mountain/USF', 'Marina', 'McLaren Park',
+  'Mission', 'Mission Bay', 'Nob Hill', 'Noe Valley', 'North Beach',
+  'Oceanview/Merced/Ingleside', 'Outer Mission', 'Outer Richmond', 'Pacific Heights',
+  'Portola', 'Potrero Hill', 'Presidio', 'Presidio Heights', 'Russian Hill',
+  'Seacliff', 'South of Market', 'Sunset/Parkside', 'Tenderloin', 'Treasure Island',
+  'Twin Peaks', 'Visitacion Valley', 'West of Twin Peaks', 'Western Addition'
+];
 
 const ZONING_CODES = [
   'BR-MU', 'C-2', 'C-3-G', 'C-3-O', 'C-3-O(SD)', 'C-3-R', 'C-3-S', 'CCB', 'CMUO',
@@ -409,25 +428,20 @@ async function loadDataset() {
     let minDistance = Infinity;
     
     if (feature.geometry) {
-      const parcelLat = feature.geometry.type === 'MultiPolygon' 
-        ? feature.geometry.coordinates[0][0][0][1] 
-        : feature.geometry.coordinates[0][0][1];
-      const parcelLon = feature.geometry.type === 'MultiPolygon'
-        ? feature.geometry.coordinates[0][0][0][0]
-        : feature.geometry.coordinates[0][0][0];
-
-      for (const stop of transitStops) {
-        const d = haversineDistance(parcelLat, parcelLon, stop.lat, stop.lon);
-        if (d < minDistance) minDistance = d;
+      const centroid = getCentroid(feature.geometry);
+      if (centroid) {
+        for (const stop of transitStops) {
+          const d = haversineDistance(centroid.lat, centroid.lon, stop.lat, stop.lon);
+          if (d < minDistance) minDistance = d;
+        }
       }
     }
 
     if (attrs) {
-      feature.properties = { ...feature.properties, ...attrs };
       attrs.distance_to_transit = minDistance === Infinity ? undefined : minDistance;
+      feature.properties = { ...feature.properties, ...attrs };
     }
     feature.properties.effective_height = parseFloat(feature.properties.fzp_height_ft) || parseFloat(feature.properties.current_height_ft) || 0;
-    feature.properties.distance_to_transit = minDistance === Infinity ? undefined : minDistance;
   });
 
   const geojson = geometries;
@@ -816,6 +830,9 @@ onMounted(() => {
               <input
                 type="number"
                 v-model="newRule.transitDistance"
+                min="0"
+                max="50000"
+                step="100"
                 class="inline-input distance-input"
                 placeholder="ft"
               />
