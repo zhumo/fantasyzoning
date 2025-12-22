@@ -17,6 +17,7 @@ from collections import defaultdict
 LIGHT_RAIL_ROUTES = ['F', 'J', 'K', 'L', 'M', 'N', 'T']
 VAN_NESS_ROUTE = '49'
 VAN_NESS_FILTER = 'Van Ness'
+GEARY_BRT_ROUTE = '38R'
 
 # File paths (relative to script location)
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -68,28 +69,30 @@ def load_stop_details(stop_ids):
     return stops
 
 
-def filter_van_ness_stops(stop_details, stop_to_routes):
-    """Filter stops to only include those on Van Ness Avenue for route 49."""
+def filter_and_label_stops(stop_details, stop_to_routes):
+    """Filter and relabel stops for specific corridors (Van Ness 49 and Geary 38R)."""
     filtered_routes = {}
     for stop_id, routes in stop_to_routes.items():
-        if VAN_NESS_ROUTE in routes:
-            # Check if stop name contains "Van Ness"
+        new_routes = set(routes)
+        
+        # Van Ness route 49 - only keep stops on Van Ness
+        if VAN_NESS_ROUTE in new_routes:
             if stop_id in stop_details:
                 stop_name = stop_details[stop_id]['stop_name']
                 if VAN_NESS_FILTER in stop_name:
-                    # Keep this stop, mark it as Van Ness route
-                    new_routes = set(routes)
                     new_routes.discard(VAN_NESS_ROUTE)
                     new_routes.add('49-VanNess')
-                    filtered_routes[stop_id] = new_routes
                 else:
-                    # Remove route 49 from this stop (not on Van Ness)
-                    new_routes = set(routes)
                     new_routes.discard(VAN_NESS_ROUTE)
-                    if new_routes:
-                        filtered_routes[stop_id] = new_routes
-        else:
-            filtered_routes[stop_id] = routes
+        
+        # Geary BRT route 38R - relabel all stops
+        if GEARY_BRT_ROUTE in new_routes:
+            new_routes.discard(GEARY_BRT_ROUTE)
+            new_routes.add('38R-Geary')
+            
+        if new_routes:
+            filtered_routes[stop_id] = new_routes
+            
     return filtered_routes
 
 
@@ -123,10 +126,10 @@ def create_geojson(stop_details, stop_to_routes):
 
 
 def main():
-    print("Extracting Muni light rail and Van Ness corridor stops...")
+    print("Extracting Muni light rail and corridor stops...")
     
-    # Step 1: Get all trips for target routes (light rail + route 49)
-    all_routes = LIGHT_RAIL_ROUTES + [VAN_NESS_ROUTE]
+    # Step 1: Get all trips for target routes
+    all_routes = LIGHT_RAIL_ROUTES + [VAN_NESS_ROUTE, GEARY_BRT_ROUTE]
     print(f"  Loading trips for routes: {', '.join(all_routes)}")
     trip_to_route = load_trips_for_routes(all_routes)
     print(f"  Found {len(trip_to_route)} trips")
@@ -137,17 +140,17 @@ def main():
     print(f"  Found {len(stop_to_routes)} unique stops")
     
     # Step 3: Load stop details
-    print("  Loading stop details...")
+    print("  Loading stop_details...")
     stop_details = load_stop_details(set(stop_to_routes.keys()))
     print(f"  Loaded details for {len(stop_details)} stops")
     
-    # Step 4: Filter Van Ness stops
-    print("  Filtering Van Ness corridor stops...")
-    stop_to_routes = filter_van_ness_stops(stop_details, stop_to_routes)
+    # Step 4: Filter and relabel stops
+    print("  Filtering and labeling corridor stops...")
+    stop_to_routes = filter_and_label_stops(stop_details, stop_to_routes)
     
-    # Remove stops that no longer have any routes
-    stop_to_routes = {k: v for k, v in stop_to_routes.items() if v}
+    # Final stop count
     print(f"  Final stop count: {len(stop_to_routes)}")
+
     
     # Step 5: Generate GeoJSON
     print("  Generating GeoJSON...")
