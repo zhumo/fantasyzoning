@@ -4,23 +4,6 @@
     {
       "type": "Feature",
       "properties": {
-        "stop_id": "3089",
-        "stop_name": "Beale St & Mission St",
-        "stop_lat": 37.791939,
-        "stop_lon": -122.396879,
-        "routes": "38R-Geary"
-      },
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          -122.396879,
-          37.791939
-        ]
-      }
-    },
-    {
-      "type": "Feature",
-      "properties": {
         "stop_id": "3092",
         "stop_name": "Beach St & Mason St",
         "stop_lat": 37.807407,
@@ -1381,23 +1364,6 @@
     {
       "type": "Feature",
       "properties": {
-        "stop_id": "4725",
-        "stop_name": "Fremont St & Market St",
-        "stop_lat": 37.791645,
-        "stop_lon": -122.398151,
-        "routes": "38R-Geary"
-      },
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          -122.398151,
-          37.791645
-        ]
-      }
-    },
-    {
-      "type": "Feature",
-      "properties": {
         "stop_id": "4726",
         "stop_name": "Don Chee Way/Steuart St",
         "stop_lat": 37.794052,
@@ -2265,23 +2231,6 @@
     {
       "type": "Feature",
       "properties": {
-        "stop_id": "5638",
-        "stop_name": "Market St & 1st St",
-        "stop_lat": 37.790485,
-        "stop_lon": -122.399723,
-        "routes": "38R-Geary"
-      },
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          -122.399723,
-          37.790485
-        ]
-      }
-    },
-    {
-      "type": "Feature",
-      "properties": {
         "stop_id": "5639",
         "stop_name": "Market St & 2nd St",
         "stop_lat": 37.789353,
@@ -2310,23 +2259,6 @@
         "coordinates": [
           -122.403519,
           37.787525
-        ]
-      }
-    },
-    {
-      "type": "Feature",
-      "properties": {
-        "stop_id": "5641",
-        "stop_name": "Market St & 3rd St",
-        "stop_lat": 37.787667,
-        "stop_lon": -122.403359,
-        "routes": "38R-Geary"
-      },
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          -122.403359,
-          37.787667
         ]
       }
     },
@@ -2707,23 +2639,6 @@
     {
       "type": "Feature",
       "properties": {
-        "stop_id": "5684",
-        "stop_name": "Market St & Montgomery St",
-        "stop_lat": 37.78849,
-        "stop_lon": -122.40248,
-        "routes": "38R-Geary"
-      },
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          -122.40248,
-          37.78849
-        ]
-      }
-    },
-    {
-      "type": "Feature",
-      "properties": {
         "stop_id": "5685",
         "stop_name": "Market St & New Montgomery St",
         "stop_lat": 37.788613,
@@ -2769,23 +2684,6 @@
         "coordinates": [
           -122.433323,
           37.763958
-        ]
-      }
-    },
-    {
-      "type": "Feature",
-      "properties": {
-        "stop_id": "5689",
-        "stop_name": "Market St & Sansome St",
-        "stop_lat": 37.790013,
-        "stop_lon": -122.400491,
-        "routes": "38R-Geary"
-      },
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          -122.400491,
-          37.790013
         ]
       }
     },
@@ -5591,23 +5489,6 @@
         "coordinates": [
           -122.39659,
           37.778403
-        ]
-      }
-    },
-    {
-      "type": "Feature",
-      "properties": {
-        "stop_id": "7915",
-        "stop_name": "Transit Center Bay C",
-        "stop_lat": 37.789957,
-        "stop_lon": -122.395493,
-        "routes": "38R-Geary"
-      },
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          -122.395493,
-          37.789957
         ]
       }
     },

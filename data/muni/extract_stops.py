@@ -18,6 +18,7 @@ LIGHT_RAIL_ROUTES = ['F', 'J', 'K', 'L', 'M', 'N', 'T']
 VAN_NESS_ROUTE = '49'
 VAN_NESS_FILTER = 'Van Ness'
 GEARY_BRT_ROUTE = '38R'
+GEARY_FILTERS = ['Geary', "O'Farrell", 'Point Lobos']
 
 # File paths (relative to script location)
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -68,7 +69,6 @@ def load_stop_details(stop_ids):
                 }
     return stops
 
-
 def filter_and_label_stops(stop_details, stop_to_routes):
     """Filter and relabel stops for specific corridors (Van Ness 49 and Geary 38R)."""
     filtered_routes = {}
@@ -85,10 +85,16 @@ def filter_and_label_stops(stop_details, stop_to_routes):
                 else:
                     new_routes.discard(VAN_NESS_ROUTE)
         
-        # Geary BRT route 38R - relabel all stops
+        # Geary BRT route 38R - only keep stops on Geary corridor
         if GEARY_BRT_ROUTE in new_routes:
-            new_routes.discard(GEARY_BRT_ROUTE)
-            new_routes.add('38R-Geary')
+            if stop_id in stop_details:
+                stop_name = stop_details[stop_id]['stop_name']
+                # Check if stop name contains any of the Geary filters
+                if any(f in stop_name for f in GEARY_FILTERS):
+                    new_routes.discard(GEARY_BRT_ROUTE)
+                    new_routes.add('38R-Geary')
+                else:
+                    new_routes.discard(GEARY_BRT_ROUTE)
             
         if new_routes:
             filtered_routes[stop_id] = new_routes
