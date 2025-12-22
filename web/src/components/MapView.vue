@@ -33,6 +33,30 @@ const newRule = ref({
   fzpHeight: ''
 });
 
+const NEIGHBORHOODS = [
+  'Bayview Hunters Point', 'Bernal Heights', 'Castro/Upper Market', 'Chinatown',
+  'Excelsior', 'Financial District/South Beach', 'Glen Park', 'Golden Gate Park',
+  'Haight Ashbury', 'Hayes Valley', 'Inner Richmond', 'Inner Sunset', 'Japantown',
+  'Lakeshore', 'Lincoln Park', 'Lone Mountain/USF', 'Marina', 'McLaren Park',
+  'Mission', 'Mission Bay', 'Nob Hill', 'Noe Valley', 'North Beach',
+  'Oceanview/Merced/Ingleside', 'Outer Mission', 'Outer Richmond', 'Pacific Heights',
+  'Portola', 'Potrero Hill', 'Presidio', 'Presidio Heights', 'Russian Hill',
+  'Seacliff', 'South of Market', 'Sunset/Parkside', 'Tenderloin', 'Treasure Island',
+  'Twin Peaks', 'Visitacion Valley', 'West of Twin Peaks', 'Western Addition'
+];
+
+function haversineDistance(lat1, lon1, lat2, lon2) {
+  const R = 3958.8; // Radius of the Earth in miles
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c * 5280; // Return distance in feet
+}
+
 const hoveredParcelStats = computed(() => {
   if (!hoveredParcel.value || fzpZoningData.value.length === 0) return null;
 
@@ -59,18 +83,6 @@ const hoveredParcelStats = computed(() => {
     units: units.toFixed(1)
   };
 });
-
-const NEIGHBORHOODS = [
-  'Bayview Hunters Point', 'Bernal Heights', 'Castro/Upper Market', 'Chinatown',
-  'Excelsior', 'Financial District/South Beach', 'Glen Park', 'Golden Gate Park',
-  'Haight Ashbury', 'Hayes Valley', 'Inner Richmond', 'Inner Sunset', 'Japantown',
-  'Lakeshore', 'Lincoln Park', 'Lone Mountain/USF', 'Marina', 'McLaren Park',
-  'Mission', 'Mission Bay', 'Nob Hill', 'Noe Valley', 'North Beach',
-  'Oceanview/Merced/Ingleside', 'Outer Mission', 'Outer Richmond', 'Pacific Heights',
-  'Portola', 'Potrero Hill', 'Presidio', 'Presidio Heights', 'Russian Hill',
-  'Seacliff', 'South of Market', 'Sunset/Parkside', 'Tenderloin', 'Treasure Island',
-  'Twin Peaks', 'Visitacion Valley', 'West of Twin Peaks', 'Western Addition'
-];
 
 const ZONING_CODES = [
   'BR-MU', 'C-2', 'C-3-G', 'C-3-O', 'C-3-O(SD)', 'C-3-R', 'C-3-S', 'CCB', 'CMUO',
@@ -158,7 +170,8 @@ function openAddRuleModal() {
     proposedHeight: '',
     neighborhood: '',
     zoningCode: '',
-    fzpHeight: ''
+    fzpHeight: '',
+    transitDistance: ''
   };
   showModal.value = true;
 }
@@ -169,7 +182,8 @@ function openEditRuleModal(rule) {
     proposedHeight: rule.proposedHeight,
     neighborhood: rule.neighborhood || '',
     zoningCode: rule.zoningCode || '',
-    fzpHeight: rule.fzpHeight || ''
+    fzpHeight: rule.fzpHeight || '',
+    transitDistance: rule.transitDistance || ''
   };
   showModal.value = true;
 }
@@ -208,7 +222,8 @@ async function saveRule() {
       proposedHeight: height,
       neighborhood: newRule.value.neighborhood || null,
       zoningCode: newRule.value.zoningCode || null,
-      fzpHeight: newRule.value.fzpHeight || null
+      fzpHeight: newRule.value.fzpHeight || null,
+      transitDistance: newRule.value.transitDistance ? parseInt(newRule.value.transitDistance) : null
     });
   }
 
@@ -242,6 +257,9 @@ function ruleMatchesParcel(rule, parcelAttrs) {
     return false;
   }
   if (rule.fzpHeight && parcelAttrs.fzp_height_ft !== rule.fzpHeight) {
+    return false;
+  }
+  if (rule.transitDistance && (parcelAttrs.distance_to_transit === undefined || parcelAttrs.distance_to_transit > rule.transitDistance)) {
     return false;
   }
   return true;
@@ -345,10 +363,13 @@ async function loadDataset() {
   if (map.value.getSource('public-data')) map.value.removeSource('public-data');
   if (map.value.getSource('highlight')) map.value.removeSource('highlight');
 
-  const [geomResponse, attrResponse, fzpResponse] = await Promise.all([
+  const [geomResponse, attrResponse, fzpResponse, bartResponse, muniResponse, caltrainResponse] = await Promise.all([
     fetch(`/data/${dataset.file}`),
     fetch(`/data/${dataset.attributesFile}`),
-    fetch('/data/fzp-zoning.csv')
+    fetch('/data/fzp-zoning.csv'),
+    fetch('/data/transit-bart.geojson'),
+    fetch('/data/transit-muni.geojson'),
+    fetch('/data/transit-caltrain.geojson')
   ]);
 
   const geometries = await geomResponse.json();
@@ -357,6 +378,18 @@ async function loadDataset() {
 
   const fzpText = await fzpResponse.text();
   const parsedFzpData = parseNumericCSV(fzpText);
+
+  const [bart, muni, caltrain] = await Promise.all([
+    bartResponse.json(),
+    muniResponse.json(),
+    caltrainResponse.json()
+  ]);
+
+  const transitStops = [...bart.features, ...muni.features, ...caltrain.features].map(f => ({
+    lat: f.geometry.coordinates[1],
+    lon: f.geometry.coordinates[0]
+  }));
+
   parsedFzpData.forEach(parcel => {
     parcel.unitsCache = {};
   });
@@ -371,10 +404,27 @@ async function loadDataset() {
   geometries.features.forEach(feature => {
     const mapblklot = feature.properties.mapblklot;
     const attrs = attributesMap.get(mapblklot);
+    
+    // Calculate distance to nearest transit
+    let minDistance = Infinity;
+    const parcelLat = feature.geometry.type === 'MultiPolygon' 
+      ? feature.geometry.coordinates[0][0][0][1] 
+      : feature.geometry.coordinates[0][0][1];
+    const parcelLon = feature.geometry.type === 'MultiPolygon'
+      ? feature.geometry.coordinates[0][0][0][0]
+      : feature.geometry.coordinates[0][0][0];
+
+    for (const stop of transitStops) {
+      const d = haversineDistance(parcelLat, parcelLon, stop.lat, stop.lon);
+      if (d < minDistance) minDistance = d;
+    }
+
     if (attrs) {
       feature.properties = { ...feature.properties, ...attrs };
+      attrs.distance_to_transit = minDistance;
     }
     feature.properties.effective_height = parseFloat(feature.properties.fzp_height_ft) || parseFloat(feature.properties.current_height_ft) || 0;
+    feature.properties.distance_to_transit = minDistance;
   });
 
   const geojson = geometries;
@@ -608,11 +658,14 @@ onMounted(() => {
           <div class="rule-summary">
             <span class="rule-height">{{ rule.proposedHeight }} ft</span>
             <span class="rule-criteria">
-              <template v-if="!rule.neighborhood && !rule.zoningCode && !rule.fzpHeight">all parcels</template>
+              <template v-if="!rule.neighborhood && !rule.zoningCode && !rule.fzpHeight && !rule.transitDistance">all parcels</template>
               <template v-else>
-                <span v-if="rule.neighborhood">{{ rule.neighborhood }}</span>
-                <span v-if="rule.zoningCode">{{ rule.neighborhood ? ' · ' : '' }}{{ rule.zoningCode }}</span>
-                <span v-if="rule.fzpHeight">{{ (rule.neighborhood || rule.zoningCode) ? ' · ' : '' }}{{ rule.fzpHeight }}ft FZP</span>
+                <div class="rule-criteria-list">
+                  <span v-if="rule.neighborhood">{{ rule.neighborhood }}</span>
+                  <span v-if="rule.zoningCode">{{ (rule.neighborhood) ? ' · ' : '' }}{{ rule.zoningCode }}</span>
+                  <span v-if="rule.fzpHeight">{{ (rule.neighborhood || rule.zoningCode) ? ' · ' : '' }}{{ rule.fzpHeight }}ft FZP</span>
+                  <span v-if="rule.transitDistance">{{ (rule.neighborhood || rule.zoningCode || rule.fzpHeight) ? ' · ' : '' }}within {{ rule.transitDistance }}ft of transit</span>
+                </div>
               </template>
             </span>
           </div>
@@ -753,6 +806,17 @@ onMounted(() => {
                 <option value="">any</option>
                 <option v-for="h in FZP_HEIGHTS" :key="h" :value="h">{{ h }} ft</option>
               </select>
+            </div>
+
+            <div class="criteria-row">
+              <span class="form-text">within</span>
+              <input
+                type="number"
+                v-model="newRule.transitDistance"
+                class="inline-input distance-input"
+                placeholder="ft"
+              />
+              <span class="form-text">ft of a transit stop</span>
             </div>
           </div>
         </div>
@@ -1184,6 +1248,13 @@ onMounted(() => {
   font-size: 12px;
 }
 
+.rule-criteria-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  align-items: center;
+}
+
 .delete-rule-btn {
   background: none;
   border: none;
@@ -1320,6 +1391,11 @@ onMounted(() => {
 
 .height-input {
   width: 60px;
+  text-align: center;
+}
+
+.distance-input {
+  width: 70px;
   text-align: center;
 }
 
