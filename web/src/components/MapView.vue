@@ -651,7 +651,7 @@ onMounted(() => {
             </tr>
             <tr>
               <td class="key">Supervisor</td>
-              <td class="value">{{ hoveredParcel.supname }} (D{{ hoveredParcel.supervisor_district }})</td>
+              <td class="value">{{ hoveredParcel.supname }} (D{{ Math.floor(hoveredParcel.supervisor_district) }})</td>
             </tr>
             <tr v-if="hoveredParcel.mapblklot">
               <td class="key">Parcel ID</td>
@@ -663,11 +663,11 @@ onMounted(() => {
             </tr>
             <tr v-if="hoveredParcel.fzp_height_ft">
               <td class="key">FZP Height</td>
-              <td class="value">{{ hoveredParcel.fzp_height_ft }} ft</td>
+              <td class="value">{{ Math.floor(hoveredParcel.fzp_height_ft) }} ft</td>
             </tr>
             <tr v-if="hoveredParcel.fzp_height_ft">
               <td class="key">Your Proposed Height</td>
-              <td class="value">{{ hoveredParcel.effective_height || hoveredParcel.fzp_height_ft }} ft</td>
+              <td class="value">{{ Math.floor(hoveredParcel.effective_height || hoveredParcel.fzp_height_ft) }} ft</td>
             </tr>
             <tr v-if="hoveredParcelStats">
               <td class="key">Redev. Probability</td>
