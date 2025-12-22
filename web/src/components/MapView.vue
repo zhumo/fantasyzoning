@@ -13,6 +13,7 @@ const loading = ref(false);
 const mapRendering = ref(false);
 const hoveredParcel = ref(null);
 const hoveredFeature = ref(null);
+const hoveredTransitStop = ref(null);
 const tooltipPosition = ref({ x: 0, y: 0 });
 
 const userRules = ref([]);
@@ -536,6 +537,47 @@ async function loadDataset() {
     });
   }
 
+  map.value.addSource('transit-bart', { type: 'geojson', data: bart });
+  map.value.addSource('transit-muni', { type: 'geojson', data: muni });
+  map.value.addSource('transit-caltrain', { type: 'geojson', data: caltrain });
+
+  map.value.addLayer({
+    id: 'transit-bart-circles',
+    type: 'circle',
+    source: 'transit-bart',
+    paint: {
+      'circle-color': '#0066ff',
+      'circle-radius': 6,
+      'circle-stroke-color': '#fff',
+      'circle-stroke-width': 2
+    }
+  });
+
+  map.value.addLayer({
+    id: 'transit-muni-circles',
+    type: 'circle',
+    source: 'transit-muni',
+    paint: {
+      'circle-color': '#0066ff',
+      'circle-radius': 6,
+      'circle-stroke-color': '#fff',
+      'circle-stroke-width': 2
+    }
+  });
+
+  map.value.addLayer({
+    id: 'transit-caltrain-circles',
+    type: 'circle',
+    source: 'transit-caltrain',
+    paint: {
+      'circle-color': '#0066ff',
+      'circle-radius': 6,
+      'circle-stroke-color': '#fff',
+      'circle-stroke-width': 2
+    }
+  });
+
+  setupTransitInteractions();
   setupInteractions(geojson);
   recalculateProjections();
   loading.value = false;
@@ -543,6 +585,39 @@ async function loadDataset() {
   mapRendering.value = true;
   map.value.once('idle', () => {
     mapRendering.value = false;
+  });
+}
+
+function setupTransitInteractions() {
+  const transitLayers = [
+    { id: 'transit-bart-circles', system: 'BART' },
+    { id: 'transit-muni-circles', system: 'Muni' },
+    { id: 'transit-caltrain-circles', system: 'Caltrain' }
+  ];
+
+  transitLayers.forEach(({ id, system }) => {
+    map.value.on('mouseenter', id, (e) => {
+      map.value.getCanvas().style.cursor = 'pointer';
+      if (e.features.length > 0) {
+        const props = e.features[0].properties;
+        let name = props.Name || props.stop_name || 'Unknown';
+        let route = system;
+        if (system === 'Muni' && props.routes) {
+          route = `Muni ${props.routes}`;
+        }
+        hoveredTransitStop.value = { name, route };
+        tooltipPosition.value = { x: e.point.x, y: e.point.y };
+      }
+    });
+
+    map.value.on('mousemove', id, (e) => {
+      tooltipPosition.value = { x: e.point.x, y: e.point.y };
+    });
+
+    map.value.on('mouseleave', id, () => {
+      map.value.getCanvas().style.cursor = '';
+      hoveredTransitStop.value = null;
+    });
   });
 }
 
@@ -749,6 +824,10 @@ onMounted(() => {
             </tr>
           </tbody>
         </table>
+      </div>
+      <div v-if="hoveredTransitStop" class="tooltip transit-tooltip" :style="{ left: tooltipPosition.x + 15 + 'px', top: tooltipPosition.y + 15 + 'px' }">
+        <div class="transit-name">{{ hoveredTransitStop.name }}</div>
+        <div class="transit-route">{{ hoveredTransitStop.route }}</div>
       </div>
       <div class="legend">
         <div class="legend-title">Height (ft)</div>
@@ -1184,6 +1263,21 @@ onMounted(() => {
 
 .tooltip .value {
   color: #fff;
+}
+
+.transit-tooltip {
+  padding: 8px 12px;
+}
+
+.transit-name {
+  font-weight: 600;
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
+.transit-route {
+  font-size: 12px;
+  color: #aaa;
 }
 
 .legend {
