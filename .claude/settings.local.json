@@ -4,7 +4,9 @@
       "Bash(npm create:*)",
       "Bash(npm install)",
       "Bash(npm install:*)",
-      "Bash(git worktree add:*)"
+      "Bash(git worktree add:*)",
+      "Bash(cd:*)",
+      "Bash(npm run build:*)"
     ],
     "deny": [],
     "ask": []
