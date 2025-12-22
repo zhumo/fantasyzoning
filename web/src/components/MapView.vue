@@ -407,24 +407,27 @@ async function loadDataset() {
     
     // Calculate distance to nearest transit
     let minDistance = Infinity;
-    const parcelLat = feature.geometry.type === 'MultiPolygon' 
-      ? feature.geometry.coordinates[0][0][0][1] 
-      : feature.geometry.coordinates[0][0][1];
-    const parcelLon = feature.geometry.type === 'MultiPolygon'
-      ? feature.geometry.coordinates[0][0][0][0]
-      : feature.geometry.coordinates[0][0][0];
+    
+    if (feature.geometry) {
+      const parcelLat = feature.geometry.type === 'MultiPolygon' 
+        ? feature.geometry.coordinates[0][0][0][1] 
+        : feature.geometry.coordinates[0][0][1];
+      const parcelLon = feature.geometry.type === 'MultiPolygon'
+        ? feature.geometry.coordinates[0][0][0][0]
+        : feature.geometry.coordinates[0][0][0];
 
-    for (const stop of transitStops) {
-      const d = haversineDistance(parcelLat, parcelLon, stop.lat, stop.lon);
-      if (d < minDistance) minDistance = d;
+      for (const stop of transitStops) {
+        const d = haversineDistance(parcelLat, parcelLon, stop.lat, stop.lon);
+        if (d < minDistance) minDistance = d;
+      }
     }
 
     if (attrs) {
       feature.properties = { ...feature.properties, ...attrs };
-      attrs.distance_to_transit = minDistance;
+      attrs.distance_to_transit = minDistance === Infinity ? undefined : minDistance;
     }
     feature.properties.effective_height = parseFloat(feature.properties.fzp_height_ft) || parseFloat(feature.properties.current_height_ft) || 0;
-    feature.properties.distance_to_transit = minDistance;
+    feature.properties.distance_to_transit = minDistance === Infinity ? undefined : minDistance;
   });
 
   const geojson = geometries;
