@@ -54,3 +54,52 @@ def merge_model_data(parcels_df, model_df, raw_parcels_df):
 def remove_public_parcels(parcels_df, public_parcels_df):
     public_mapblklots = set(public_parcels_df['mapblklot'])
     return parcels_df[~parcels_df['mapblklot'].isin(public_mapblklots)]
+
+
+NON_HOUSING_ZONE_PATTERNS = ['M-1', 'M-2', 'PDR-1-B', 'PDR-1-D', 'PDR-1-G', 'PDR-2', 'TI-OS', 'TI-R', 'TI-MU', 'P']
+LARGE_PARCEL_AREA_THRESHOLD = 100
+
+
+def identify_non_housing_parcels(parcels_df):
+    def zone_matches_pattern(zone):
+        if pd.isna(zone):
+            return False
+        for pattern in NON_HOUSING_ZONE_PATTERNS:
+            if pattern in zone:
+                return True
+        return False
+
+    is_non_housing_zone = parcels_df['zoning_code'].apply(zone_matches_pattern)
+
+    area_numeric = pd.to_numeric(parcels_df['Area_1000'], errors='coerce').fillna(0)
+    is_large_rh1d = (parcels_df['zoning_code'] == 'RH-1(D)') & (area_numeric > LARGE_PARCEL_AREA_THRESHOLD)
+
+    return is_non_housing_zone | is_large_rh1d
+
+
+def remove_non_housing_parcels(parcels_df, public_parcels_path):
+    import geopandas as gpd
+    from shapely import wkt
+
+    non_housing_mask = identify_non_housing_parcels(parcels_df)
+
+    if non_housing_mask.sum() == 0:
+        return parcels_df
+
+    non_housing_parcels = parcels_df[non_housing_mask].copy()
+    non_housing_parcels['geometry'] = non_housing_parcels['shape'].apply(wkt.loads)
+    non_housing_gdf = gpd.GeoDataFrame(non_housing_parcels, geometry='geometry', crs='EPSG:4326')
+
+    existing_public = gpd.read_file(public_parcels_path)
+    existing_mapblklots = set(existing_public['mapblklot'])
+
+    new_public = non_housing_gdf[~non_housing_gdf['mapblklot'].isin(existing_mapblklots)]
+
+    if len(new_public) > 0:
+        cols_to_keep = [c for c in existing_public.columns if c in new_public.columns]
+        new_public_subset = new_public[cols_to_keep]
+
+        combined = pd.concat([existing_public, new_public_subset], ignore_index=True)
+        combined.to_file(public_parcels_path, driver='GeoJSON')
+
+    return parcels_df[~non_housing_mask]

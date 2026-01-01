@@ -761,8 +761,8 @@ onMounted(() => {
             </tr>
             <tr class="your-plan">
               <td class="row-label">Your Plan</td>
-              <td>{{ formatNumber(yourPlanLow) || "10,268" }}</td>
-              <td>{{ formatNumber(yourPlanHigh) || "17,775" }}</td>
+              <td>{{ formatNumber(yourPlanLow) || "---" }}</td>
+              <td>{{ formatNumber(yourPlanHigh) || "---" }}</td>
             </tr>
           </tbody>
         </table>

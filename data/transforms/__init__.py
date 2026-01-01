@@ -3,6 +3,10 @@ from .clean_parcels import (
     fill_missing_addresses,
     merge_model_data,
     remove_public_parcels,
+    NON_HOUSING_ZONE_PATTERNS,
+    LARGE_PARCEL_AREA_THRESHOLD,
+    identify_non_housing_parcels,
+    remove_non_housing_parcels,
 )
 from .calculate_area import fill_missing_area
 from .fill_districts import (

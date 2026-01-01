@@ -12,7 +12,8 @@
       "Bash(python3:*)",
       "Bash(source ../.venv/bin/activate)",
       "Bash(cd /Users/mozhu/Library/Mobile Documents/com~apple~CloudDocs/programming/active_projects/fantasyzoning--east-side-2 && git ls-tree:*)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(jupyter nbconvert:*)"
     ],
     "deny": [],
     "ask": []
