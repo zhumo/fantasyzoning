@@ -800,7 +800,7 @@ onMounted(() => {
         <div class="spinner"></div>
         <div class="loading-text">Loading parcels...</div>
       </div>
-      <div ref="mapContainer" class="map-container">
+      <div ref="mapContainer" class="map-container"></div>
       <div v-if="hoveredParcel" class="tooltip" :style="{ left: tooltipPosition.x + 15 + 'px', top: tooltipPosition.y + 15 + 'px' }">
         <table>
           <tbody>
@@ -912,8 +912,7 @@ onMounted(() => {
           </div>
         </div>
       </div>
-      </div>
-      </div>
+    </div>
     </div>
     <div class="attribution">made with 🏠 by <a href="https://www.github.com/zhumo/fantasyzoning" target="_blank">Mo Zhu</a></div>
 
