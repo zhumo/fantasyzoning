@@ -12,6 +12,10 @@ dist
 dist-ssr
 *.local
 
+# Large data files (too big for GitHub)
+data/active-and-retired-parcels.csv
+data/land-use.csv
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
