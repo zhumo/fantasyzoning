@@ -1,14 +1,47 @@
+import pandas as pd
 import geopandas as gpd
 
 SDB_COLS = ['SDB_2016_5Plus', 'SDB_2016_5Plus_EnvFull', 'Zoning_DR_EnvFull']
+SDB_ZONE_PATTERNS = ['RTO', 'NCT', 'WMUG']
+SDB_ENVELOPE_THRESHOLD = 9.0
+SDB_HEIGHT_CAP = 130
+
+
+def is_sdb_zone(zoning_code):
+    if pd.isna(zoning_code):
+        return False
+    return any(pattern in zoning_code for pattern in SDB_ZONE_PATTERNS)
+
+
+def compute_sdb_qualification(parcels_df):
+    envelope = pd.to_numeric(parcels_df['Env_1000_Area_Height'], errors='coerce').fillna(0)
+    height = pd.to_numeric(parcels_df['Height_Ft'], errors='coerce').fillna(0)
+    in_sdb_zone = parcels_df['zoning_code'].apply(is_sdb_zone)
+
+    qualifies = (
+        in_sdb_zone &
+        (envelope > SDB_ENVELOPE_THRESHOLD) &
+        (height <= SDB_HEIGHT_CAP)
+    )
+    return qualifies.astype(int).astype(str)
 
 
 def fill_sdb_columns(parcels_df):
     result = parcels_df.copy()
 
+    missing_sdb_mask = result['SDB_2016_5Plus'].isna() | (result['SDB_2016_5Plus'] == '')
+
+    if missing_sdb_mask.any():
+        computed_sdb = compute_sdb_qualification(result)
+        result.loc[missing_sdb_mask, 'SDB_2016_5Plus'] = computed_sdb[missing_sdb_mask]
+
+        envelope = pd.to_numeric(result['Env_1000_Area_Height'], errors='coerce').fillna(0)
+        sdb_env_full = (computed_sdb == '1').astype(float) * envelope
+        result.loc[missing_sdb_mask, 'SDB_2016_5Plus_EnvFull'] = sdb_env_full[missing_sdb_mask].astype(str)
+
     for col in SDB_COLS:
-        missing_mask = result[col].isna() | (result[col] == '')
-        result.loc[missing_mask, col] = '0'
+        still_missing = result[col].isna() | (result[col] == '')
+        result.loc[still_missing, col] = '0'
 
     return result
 

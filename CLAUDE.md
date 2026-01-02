@@ -183,7 +183,7 @@ jupyter notebook data_pipeline.ipynb
 3. **clean_buildings.py**: Extract building sqft from land-use.csv and fzp-parcels.csv
 4. **clean_land_use.py**: Determine residential status (RESIDENT, MIXRES, CIE codes)
 5. **clean_historic.py**: Extract historic status from FZP data
-6. **clean_sdb.py**: Extract SDB (Small Disadvantaged Business) status from FZP data
+6. **fill_sdb_historic.py**: Fill SDB status using heuristic for east-side parcels (see SDB Heuristic below)
 7. **derive_zoning_dummies.py**: Create one-hot zoning categories (zp_RH2, zp_FBDMulti_RTO, etc.)
 8. **derive_district_dummies.py**: Create one-hot district categories (DIST_Mission, etc.)
 9. **derive_envelope.py**: Calculate Area_1000, Bldg_SqFt_1000, Env_1000_Area_Height
@@ -194,7 +194,7 @@ jupyter notebook data_pipeline.ipynb
 
 The pipeline generates 34 model columns including:
 - `Height_Ft`, `Area_1000`, `Env_1000_Area_Height`, `Bldg_SqFt_1000`
-- `Res_Dummy`, `Historic`, `SDB_2016_5Plus` (from FZP, 8,334 parcels have SDB=1)
+- `Res_Dummy`, `Historic`, `SDB_2016_5Plus` (from FZP or computed via heuristic)
 - 8 zoning dummies: `zp_OfficeComm`, `zp_DRMulti_RTO`, `zp_FBDMulti_RTO`, `zp_PDRInd`, `zp_Public`, `zp_Redev`, `zp_RH2`, `zp_RH3_RM1`
 - 14 district dummies: `DIST_SBayshore`, `DIST_BernalHts`, etc.
 - `SDB_2016_5Plus_EnvFull` (from FZP), `Zoning_DR_EnvFull` (calculated, 0 for non-density-restricted)
@@ -205,6 +205,21 @@ The pipeline generates 34 model columns including:
 - RH-1 and RH-1(D) parcels (75k) have no zoning category - they are the baseline
 - 1,338 parcels without height data are excluded (mostly over-water parcels in Mission Bay, Hunter's Point, and waterfront areas - see `data/missing_height_parcels.png`)
 - FZP data is used as ground truth for overlapping 92k parcels
+
+### SDB Heuristic
+
+For east-side parcels not in the FZP dataset, we compute SDB (State Density Bonus) qualification using a heuristic derived from FZP data analysis. SDB applies to parcels that can accommodate 5+ units.
+
+**SDB = 1 if ALL of:**
+1. Zoning code contains "RTO", "NCT", or "WMUG"
+2. Envelope (`Env_1000_Area_Height`) > 9.0
+3. Height ≤ 130 ft
+
+Validation against FZP data (92,722 parcels):
+- Precision: 99.6%, Recall: 99.6%, Accuracy: 99.93%
+- 31 false positives, 34 false negatives
+
+Implementation: `data/transforms/fill_sdb_historic.py` - `compute_sdb_qualification()`
 
 ## Development Workflow
 
