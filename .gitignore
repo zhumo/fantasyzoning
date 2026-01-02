@@ -16,6 +16,10 @@ dist-ssr
 data/active-and-retired-parcels.csv
 data/land-use.csv
 
+# Python
+__pycache__/
+*.pyc
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
