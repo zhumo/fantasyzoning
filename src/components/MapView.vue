@@ -464,7 +464,7 @@ async function loadDataset() {
         'fill-color': [
           'step',
           ['to-number', ['get', 'effective_height'], 0],
-          'transparent',
+          '#f5f0e6',
           45, '#ffffcc',
           55, '#c7e9b4',
           65, '#7fcdbb',
@@ -830,7 +830,7 @@ onMounted(() => {
         <div class="legend-title">Height (ft)</div>
         <div class="legend-items">
           <div class="legend-item">
-            <span class="legend-color" style="background: transparent; border: 1px solid #ccc;"></span>
+            <span class="legend-color" style="background: #f5f0e6;"></span>
             <span>0-45</span>
           </div>
           <div class="legend-item">
