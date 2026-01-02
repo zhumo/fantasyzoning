@@ -58,9 +58,10 @@ Output will be in `dist/` directory, ready to deploy to any static hosting servi
 │   └── style.css            - Global styles
 ├── public/
 │   └── data/
-│       ├── parcels.geojson      - Parcel geometries (59MB)
-│       ├── parcels.csv          - Parcel attributes (16MB)
-│       ├── public-parcels.geojson - Public parcels (3.5MB)
+│       ├── parcels.geojson      - Parcel geometries (64MB, 150k parcels)
+│       ├── parcels-overlay.csv  - Parcel attributes (17MB)
+│       ├── parcels-model.csv    - Model features (20MB)
+│       ├── public-parcels.geojson - Public parcels (6.5MB)
 │       ├── transit-bart.geojson
 │       └── transit-caltrain.geojson
 ├── package.json
@@ -70,7 +71,7 @@ Output will be in `dist/` directory, ready to deploy to any static hosting servi
 ## Current Features
 
 The app currently displays:
-- **Parcel map**: All SF parcels rendered with Mapbox GL JS, colored by height
+- **Parcel map**: All SF parcels rendered with Mapbox GL JS, colored by height (parcels below 45ft appear transparent)
 - **Public parcels**: Highlighted with green fill and stripe pattern for non-PUBLIC zoning
 - **Transit stations**: BART and Caltrain stations as blue circles
 - **Hover tooltip**: Shows address, zoning, supervisor, and height info

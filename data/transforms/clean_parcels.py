@@ -56,7 +56,8 @@ def remove_public_parcels(parcels_df, public_parcels_df):
     return parcels_df[~parcels_df['mapblklot'].isin(public_mapblklots)]
 
 
-NON_HOUSING_ZONE_PATTERNS = ['M-1', 'M-2', 'PDR-1-B', 'PDR-1-D', 'PDR-1-G', 'PDR-2', 'TI-OS', 'TI-R', 'TI-MU', 'P']
+NON_HOUSING_EXACT_ZONES = ['M-1', 'M-2', 'P']
+NON_HOUSING_PREFIX_PATTERNS = ['PDR-1-B', 'PDR-1-D', 'PDR-1-G', 'PDR-2', 'TI-OS', 'TI-R', 'TI-MU']
 LARGE_PARCEL_AREA_THRESHOLD = 100
 
 
@@ -64,8 +65,11 @@ def identify_non_housing_parcels(parcels_df):
     def zone_matches_pattern(zone):
         if pd.isna(zone):
             return False
-        for pattern in NON_HOUSING_ZONE_PATTERNS:
-            if pattern in zone:
+        zone_primary = zone.split(';')[0].strip()
+        if zone_primary in NON_HOUSING_EXACT_ZONES:
+            return True
+        for pattern in NON_HOUSING_PREFIX_PATTERNS:
+            if zone_primary.startswith(pattern):
                 return True
         return False
 
@@ -112,3 +116,32 @@ def remove_shipyard_parcels(parcels_df):
 
     shipyard_mask = missing_zoning & missing_height & is_bayview
     return parcels_df[~shipyard_mask]
+
+
+OVERLAY_COLS = [
+    'mapblklot', 'from_address_num', 'street_name', 'street_type',
+    'analysis_neighborhood', 'zoning_code', 'zoning_district',
+    'supervisor_district', 'supname'
+]
+
+
+def enrich_public_parcels(public_parcels_path, raw_parcels_df):
+    import geopandas as gpd
+
+    public_gdf = gpd.read_file(public_parcels_path)
+    public_mapblklots = set(public_gdf['mapblklot'].astype(str))
+
+    overlay_data = raw_parcels_df[raw_parcels_df['mapblklot'].astype(str).isin(public_mapblklots)].copy()
+    overlay_data = overlay_data.drop_duplicates(subset='mapblklot', keep='first')
+
+    available_cols = [c for c in OVERLAY_COLS if c in overlay_data.columns]
+    overlay_lookup = overlay_data.set_index('mapblklot')[available_cols[1:]].to_dict('index')
+
+    for idx, row in public_gdf.iterrows():
+        mapblklot = str(row['mapblklot'])
+        if mapblklot in overlay_lookup:
+            for col, val in overlay_lookup[mapblklot].items():
+                public_gdf.loc[idx, col] = val
+
+    public_gdf.to_file(public_parcels_path, driver='GeoJSON')
+    return public_gdf
