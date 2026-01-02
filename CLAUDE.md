@@ -140,6 +140,14 @@ The app uses the City Economist's predictive model (see `src/unitCalculator.js`)
 - **Outputs**: Low growth and high growth expected unit counts
 - **Important**: Env_1000_Area_Height must be calculated as `Area_1000 * Height_Ft / 10` to match the source data format
 
+### Dynamic SDB Recalculation
+
+When users apply upzoning rules, the frontend dynamically recalculates SDB (State Density Bonus) qualification based on the new height. SDB applies to buildings that can accommodate 5+ units, so increasing height can push more parcels over the envelope threshold.
+
+The frontend uses the same heuristic as the data pipeline (see SDB Heuristic section below):
+- SDB = 1 if: zoning contains RTO/NCT/WMUG AND envelope > 9.0 AND height ≤ 130 ft
+- When SDB changes from 0→1, both `SDB_2016_5Plus` and `SDB_2016_5Plus_EnvFull` are updated before calculating expected units
+
 ### Caching Strategy
 
 To improve calculation performance, the app uses a two-tier caching system:

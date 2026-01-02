@@ -4,6 +4,19 @@ import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { UnitCalculator } from '../unitCalculator.js';
 
+const SDB_ZONE_PATTERNS = ['RTO', 'NCT', 'WMUG'];
+const SDB_ENVELOPE_THRESHOLD = 9.0;
+const SDB_HEIGHT_CAP = 130;
+
+function isSdbZone(zoningCode) {
+  if (!zoningCode) return false;
+  return SDB_ZONE_PATTERNS.some(pattern => zoningCode.includes(pattern));
+}
+
+function computeSdbQualification(zoningCode, envelope, height) {
+  return isSdbZone(zoningCode) && envelope > SDB_ENVELOPE_THRESHOLD && height <= SDB_HEIGHT_CAP ? 1 : 0;
+}
+
 const mapContainer = ref(null);
 const map = ref(null);
 const currentIndex = ref(0);
@@ -74,12 +87,14 @@ const hoveredParcelStats = computed(() => {
   if (!fzpParcel) return null;
 
   const proposedHeight = parseFloat(hoveredParcel.value.effective_height) || parseFloat(hoveredParcel.value.Height_Ft) || 0;
+  const zoningCode = hoveredParcel.value.zoning_code || '';
 
   const modifiedParcel = { ...fzpParcel };
   if (proposedHeight > fzpParcel.Height_Ft) {
     modifiedParcel.Height_Ft = proposedHeight;
     modifiedParcel.Env_1000_Area_Height = fzpParcel.Area_1000 * proposedHeight / 10;
-    modifiedParcel.SDB_2016_5Plus_EnvFull = fzpParcel.SDB_2016_5Plus * modifiedParcel.Env_1000_Area_Height;
+    modifiedParcel.SDB_2016_5Plus = computeSdbQualification(zoningCode, modifiedParcel.Env_1000_Area_Height, proposedHeight);
+    modifiedParcel.SDB_2016_5Plus_EnvFull = modifiedParcel.SDB_2016_5Plus * modifiedParcel.Env_1000_Area_Height;
   }
 
   const probLow = UnitCalculator.calc20YearProbability(modifiedParcel, 'low');
@@ -301,7 +316,7 @@ function getProposedHeight(parcelAttrs) {
   return maxHeight;
 }
 
-function calcExpectedUnitsWithCache(parcel, height, scenario) {
+function calcExpectedUnitsWithCache(parcel, height, scenario, zoningCode) {
   const cacheKey = `${height}_${scenario}`;
   if (parcel.unitsCache[cacheKey] !== undefined) {
     return parcel.unitsCache[cacheKey];
@@ -310,7 +325,8 @@ function calcExpectedUnitsWithCache(parcel, height, scenario) {
   const modifiedParcel = { ...parcel };
   modifiedParcel.Height_Ft = height;
   modifiedParcel.Env_1000_Area_Height = parcel.Area_1000 * height / 10;
-  modifiedParcel.SDB_2016_5Plus_EnvFull = parcel.SDB_2016_5Plus * modifiedParcel.Env_1000_Area_Height;
+  modifiedParcel.SDB_2016_5Plus = computeSdbQualification(zoningCode, modifiedParcel.Env_1000_Area_Height, height);
+  modifiedParcel.SDB_2016_5Plus_EnvFull = modifiedParcel.SDB_2016_5Plus * modifiedParcel.Env_1000_Area_Height;
 
   const result = UnitCalculator.calcExpectedUnits(modifiedParcel, scenario);
   parcel.unitsCache[cacheKey] = result;
@@ -331,8 +347,9 @@ function recalculateProjections() {
     const proposedHeight = getProposedHeight(attrs);
 
     if (proposedHeight !== null && proposedHeight > parcel.Height_Ft) {
-      totalLow += calcExpectedUnitsWithCache(parcel, proposedHeight, 'low');
-      totalHigh += calcExpectedUnitsWithCache(parcel, proposedHeight, 'high');
+      const zoningCode = attrs.zoning_code || '';
+      totalLow += calcExpectedUnitsWithCache(parcel, proposedHeight, 'low', zoningCode);
+      totalHigh += calcExpectedUnitsWithCache(parcel, proposedHeight, 'high', zoningCode);
     } else {
       totalLow += parcel.fzp_expected_units_low;
       totalHigh += parcel.fzp_expected_units_high;
