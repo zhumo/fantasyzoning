@@ -60,7 +60,7 @@ Output will be in `dist/` directory, ready to deploy to any static hosting servi
 │   └── data/
 │       ├── parcels.geojson      - Parcel geometries (59MB)
 │       ├── parcels.csv          - Parcel attributes (16MB)
-│       ├── public-parcels.geojson - Public parcels (5.8MB)
+│       ├── public-parcels.geojson - Public parcels (3.5MB)
 │       ├── transit-bart.geojson
 │       └── transit-caltrain.geojson
 ├── package.json
