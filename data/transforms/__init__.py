@@ -7,6 +7,7 @@ from .clean_parcels import (
     LARGE_PARCEL_AREA_THRESHOLD,
     identify_non_housing_parcels,
     remove_non_housing_parcels,
+    remove_shipyard_parcels,
 )
 from .calculate_area import fill_missing_area
 from .fill_districts import (

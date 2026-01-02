@@ -203,8 +203,19 @@ The pipeline generates 34 model columns including:
 ### Notes
 
 - RH-1 and RH-1(D) parcels (75k) have no zoning category - they are the baseline
-- 1,338 parcels without height data are excluded (mostly over-water parcels in Mission Bay, Hunter's Point, and waterfront areas - see `data/missing_height_parcels.png`)
 - FZP data is used as ground truth for overlapping 92k parcels
+
+### Excluded Parcels
+
+The pipeline excludes certain parcels that cannot be modeled:
+
+1. **Bayview Hunters Point Shipyard** (~751 parcels): Missing both zoning and height data. Located in former naval shipyard under separate redevelopment jurisdiction, not covered by standard SF zoning/height districts.
+
+2. **Presidio parcels**: Under National Park Service jurisdiction, not subject to SF zoning.
+
+3. **Non-housing zones**: Industrial (M-1, M-2), PDR, Treasure Island special zones, P (public) zones.
+
+4. **Open space parcels**: Height >= 1000 ft (placeholder value for parks/open space).
 
 ### SDB Heuristic
 

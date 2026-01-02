@@ -103,3 +103,12 @@ def remove_non_housing_parcels(parcels_df, public_parcels_path):
         combined.to_file(public_parcels_path, driver='GeoJSON')
 
     return parcels_df[~non_housing_mask]
+
+
+def remove_shipyard_parcels(parcels_df):
+    missing_zoning = parcels_df['zoning_code'].isna() | (parcels_df['zoning_code'] == '')
+    missing_height = parcels_df['Height_Ft'].isna() | (parcels_df['Height_Ft'] == '')
+    is_bayview = parcels_df['analysis_neighborhood'] == 'Bayview Hunters Point'
+
+    shipyard_mask = missing_zoning & missing_height & is_bayview
+    return parcels_df[~shipyard_mask]
