@@ -710,7 +710,7 @@ onMounted(() => {
     <div class="main-content">
       <div class="sidebar">
       <div class="header-with-info">
-        <h1>Fantasy Zoning</h1>
+        <h1>BYO Zoning</h1>
         <button class="info-icon" @click="toggleInfoModal" title="About this app">?</button>
       </div>
       <p>Can you save SF from RHNA de-certification?</p>
@@ -956,7 +956,7 @@ onMounted(() => {
     <div v-if="showInfoModal" class="modal-overlay" @click.self="toggleInfoModal">
       <div class="modal info-modal">
         <div class="modal-header">
-          <h3>What is Fantasy Zoning?</h3>
+          <h3>What is BYO Zoning?</h3>
           <button class="modal-close" @click="toggleInfoModal">×</button>
         </div>
         <div class="modal-body info-modal-body">
@@ -971,14 +971,10 @@ onMounted(() => {
               <strong>However, the City Economist has projected</strong> that in the best case scenario, the FZP would only meet approximately 50% of our goal (generating 8,000-18,000 units instead of the required 36,200).
             </li>
             <li>
-              <strong>This app allows you to test</strong> what kinds of upzoning programs will allow SF to meet its goal. You can create custom zoning rules by specifying height limits for different neighborhoods, zoning codes, and FZP heights. The app uses the City Economist's predictive model to project expected housing production under your plan.
+              This app allows you to <strong>see what level of upzoning is necessary</strong> for SF to meet its goal. The app uses the City Economist's predictive model to project expected housing production under your plan.
             </li>
-            <li>
-              <strong>Current limitations</strong> (working on fixing these): Does not work on the east side of the city—only the parts where the FZP was applied. Does not allow for upzoning within a specific distance of landmarks such as transit stops and grocery stores.
-            </li>
-            <li>
-              <strong>Made by Mo Zhu.</strong> View the source code and learn more at <a href="https://www.github.com/zhumo/fantasyzoning" target="_blank">github.com/zhumo/fantasyzoning</a>
-            </li>
+
+            <strong>Made by Mo Zhu.</strong> Report bugs, view the source code, and learn more at <a href="https://www.github.com/zhumo/fantasyzoning" target="_blank">github.com/zhumo/fantasyzoning</a>
           </ol>
         </div>
         <div class="modal-footer">
