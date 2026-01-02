@@ -34,3 +34,4 @@ from .fill_sdb_historic import (
     fill_historic_columns,
 )
 from .calculate_units import calculate_expected_units
+from .calculate_transit_distance import fill_transit_distance

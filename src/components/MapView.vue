@@ -48,37 +48,6 @@ const newRule = ref({
   fzpHeight: ''
 });
 
-function haversineDistance(lat1, lon1, lat2, lon2) {
-  const R = 3958.8; // Radius of the Earth in miles
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-    Math.sin(dLon / 2) * Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c * 5280; // Return distance in feet
-}
-
-function getCentroid(geometry) {
-  let ring = [];
-  if (geometry.type === 'Polygon') {
-    ring = geometry.coordinates[0];
-  } else if (geometry.type === 'MultiPolygon') {
-    ring = geometry.coordinates[0][0];
-  }
-  
-  if (!ring || ring.length === 0) return null;
-  
-  let sumLat = 0;
-  let sumLon = 0;
-  for (const [lon, lat] of ring) {
-    sumLat += lat;
-    sumLon += lon;
-  }
-  return { lat: sumLat / ring.length, lon: sumLon / ring.length };
-}
-
 const hoveredParcelStats = computed(() => {
   if (!hoveredParcel.value || fzpZoningData.value.length === 0) return null;
 
@@ -295,8 +264,11 @@ function ruleMatchesParcel(rule, parcelAttrs) {
   if (rule.fzpHeight && parcelAttrs.Height_Ft !== rule.fzpHeight) {
     return false;
   }
-  if (rule.transitDistance && (parcelAttrs.distance_to_transit === undefined || parcelAttrs.distance_to_transit > rule.transitDistance)) {
-    return false;
+  if (rule.transitDistance) {
+    const distToTransit = parseFloat(parcelAttrs.distance_to_transit);
+    if (isNaN(distToTransit) || distToTransit > rule.transitDistance) {
+      return false;
+    }
   }
   return true;
 }
@@ -422,11 +394,6 @@ async function loadDataset() {
     caltrainResponse.json()
   ]);
 
-  const transitStops = [...bart.features, ...muni.features, ...caltrain.features].map(f => ({
-    lat: f.geometry.coordinates[1],
-    lon: f.geometry.coordinates[0]
-  }));
-
   const MODEL_NUMERIC_COLS = [
     'Height_Ft', 'Area_1000', 'Env_1000_Area_Height', 'Bldg_SqFt_1000',
     'Res_Dummy', 'Historic', 'SDB_2016_5Plus',
@@ -463,20 +430,7 @@ async function loadDataset() {
     const overlay = overlayMap.get(mapblklot);
     const model = modelLookup.get(mapblklot);
 
-    let minDistance = Infinity;
-
-    if (feature.geometry) {
-      const centroid = getCentroid(feature.geometry);
-      if (centroid) {
-        for (const stop of transitStops) {
-          const d = haversineDistance(centroid.lat, centroid.lon, stop.lat, stop.lon);
-          if (d < minDistance) minDistance = d;
-        }
-      }
-    }
-
     if (overlay) {
-      overlay.distance_to_transit = minDistance === Infinity ? undefined : minDistance;
       feature.properties = { ...feature.properties, ...overlay };
     }
     feature.properties.effective_height = parseFloat(feature.properties.Height_Ft) || (model ? model.Height_Ft : 0) || 0;
