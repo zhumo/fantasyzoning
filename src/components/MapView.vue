@@ -714,7 +714,7 @@ onMounted(() => {
         <button class="info-icon" @click="toggleInfoModal" title="About this app">?</button>
       </div>
       <p>Can you save SF from RHNA de-certification?</p>
-      <p>Target: 36,200</p>
+      <p>Target: 82,069</p>
       <div class="scenarios-table">
         <table>
           <thead>
@@ -965,10 +965,10 @@ onMounted(() => {
               <strong>San Francisco must upzone</strong> to meet the state's RHNA (Regional Housing Needs Allocation) requirements. If the City fails to comply, it risks losing local control over housing decisions and facing state intervention.
             </li>
             <li>
-              <strong>SF passed the Family Zoning Plan (FZP)</strong> in 2025, which aims to meet our RHNA goal of producing 36,200 new housing units.
+              <strong>SF passed the Family Zoning Plan (FZP)</strong> in 2025, which aims to meet our RHNA goal of producing 82,069 new housing units.
             </li>
             <li>
-              <strong>However, the City Economist has projected</strong> that in the best case scenario, the FZP would only meet approximately 50% of our goal (generating 8,000-18,000 units instead of the required 36,200).
+              <strong>However, the City Economist has projected</strong> that in the best case scenario, the FZP would only meet approximately 50% of our goal (generating 8,000-18,000 units instead of the required 82,069).
             </li>
             <li>
               This app allows you to <strong>see what level of upzoning is necessary</strong> for SF to meet its goal. The app uses the City Economist's predictive model to project expected housing production under your plan.
