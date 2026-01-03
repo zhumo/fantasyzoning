@@ -2,24 +2,15 @@ import pandas as pd
 import geopandas as gpd
 
 SDB_COLS = ['SDB_2016_5Plus', 'SDB_2016_5Plus_EnvFull', 'Zoning_DR_EnvFull']
-SDB_ZONE_PATTERNS = ['RTO', 'NCT', 'WMUG']
 SDB_ENVELOPE_THRESHOLD = 9.0
 SDB_HEIGHT_CAP = 130
-
-
-def is_sdb_zone(zoning_code):
-    if pd.isna(zoning_code):
-        return False
-    return any(pattern in zoning_code for pattern in SDB_ZONE_PATTERNS)
 
 
 def compute_sdb_qualification(parcels_df):
     envelope = pd.to_numeric(parcels_df['Env_1000_Area_Height'], errors='coerce').fillna(0)
     height = pd.to_numeric(parcels_df['Height_Ft'], errors='coerce').fillna(0)
-    in_sdb_zone = parcels_df['zoning_code'].apply(is_sdb_zone)
 
     qualifies = (
-        in_sdb_zone &
         (envelope > SDB_ENVELOPE_THRESHOLD) &
         (height <= SDB_HEIGHT_CAP)
     )

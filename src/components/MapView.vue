@@ -4,17 +4,11 @@ import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { UnitCalculator } from '../unitCalculator.js';
 
-const SDB_ZONE_PATTERNS = ['RTO', 'NCT', 'WMUG'];
 const SDB_ENVELOPE_THRESHOLD = 9.0;
 const SDB_HEIGHT_CAP = 130;
 
-function isSdbZone(zoningCode) {
-  if (!zoningCode) return false;
-  return SDB_ZONE_PATTERNS.some(pattern => zoningCode.includes(pattern));
-}
-
-function computeSdbQualification(zoningCode, envelope, height) {
-  return isSdbZone(zoningCode) && envelope > SDB_ENVELOPE_THRESHOLD && height <= SDB_HEIGHT_CAP ? 1 : 0;
+function computeSdbQualification(envelope, height) {
+  return envelope > SDB_ENVELOPE_THRESHOLD && height <= SDB_HEIGHT_CAP ? 1 : 0;
 }
 
 const mapContainer = ref(null);
@@ -62,7 +56,7 @@ const hoveredParcelStats = computed(() => {
   if (proposedHeight > fzpParcel.Height_Ft) {
     modifiedParcel.Height_Ft = proposedHeight;
     modifiedParcel.Env_1000_Area_Height = fzpParcel.Area_1000 * proposedHeight / 10;
-    modifiedParcel.SDB_2016_5Plus = computeSdbQualification(zoningCode, modifiedParcel.Env_1000_Area_Height, proposedHeight);
+    modifiedParcel.SDB_2016_5Plus = computeSdbQualification(modifiedParcel.Env_1000_Area_Height, proposedHeight);
     modifiedParcel.SDB_2016_5Plus_EnvFull = modifiedParcel.SDB_2016_5Plus * modifiedParcel.Env_1000_Area_Height;
   }
 
@@ -297,7 +291,7 @@ function calcExpectedUnitsWithCache(parcel, height, scenario, zoningCode) {
   const modifiedParcel = { ...parcel };
   modifiedParcel.Height_Ft = height;
   modifiedParcel.Env_1000_Area_Height = parcel.Area_1000 * height / 10;
-  modifiedParcel.SDB_2016_5Plus = computeSdbQualification(zoningCode, modifiedParcel.Env_1000_Area_Height, height);
+  modifiedParcel.SDB_2016_5Plus = computeSdbQualification(modifiedParcel.Env_1000_Area_Height, height);
   modifiedParcel.SDB_2016_5Plus_EnvFull = modifiedParcel.SDB_2016_5Plus * modifiedParcel.Env_1000_Area_Height;
 
   const result = UnitCalculator.calcExpectedUnits(modifiedParcel, scenario);
