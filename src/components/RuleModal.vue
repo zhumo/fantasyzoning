@@ -11,7 +11,6 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'save'])
 
-const saving = ref(false)
 const formData = ref({
   proposedHeight: '',
   neighborhood: '',
@@ -42,12 +41,9 @@ watch(() => props.show, (newVal) => {
   }
 })
 
-async function handleSave() {
+function handleSave() {
   const height = parseInt(formData.value.proposedHeight)
   if (isNaN(height) || height <= 0) return
-
-  saving.value = true
-  await new Promise(resolve => setTimeout(resolve, 0))
 
   emit('save', {
     proposedHeight: height,
@@ -56,8 +52,6 @@ async function handleSave() {
     fzpHeight: formData.value.fzpHeight || null,
     transitDistance: formData.value.transitDistance ? parseInt(formData.value.transitDistance) : null
   })
-
-  saving.value = false
 }
 </script>
 
@@ -119,10 +113,9 @@ async function handleSave() {
         </div>
       </div>
       <div class="modal-footer">
-        <button class="modal-cancel" @click="$emit('close')" :disabled="saving">Cancel</button>
-        <button class="modal-save" @click="handleSave" :disabled="!formData.proposedHeight || saving">
-          <span v-if="saving" class="button-spinner"></span>
-          {{ saving ? 'Calculating...' : (editingRule ? 'Update Rule' : 'Save Rule') }}
+        <button class="modal-cancel" @click="$emit('close')">Cancel</button>
+        <button class="modal-save" @click="handleSave" :disabled="!formData.proposedHeight">
+          {{ editingRule ? 'Update Rule' : 'Save Rule' }}
         </button>
       </div>
     </div>
@@ -282,21 +275,4 @@ async function handleSave() {
   background: #fff;
 }
 
-.button-spinner {
-  display: inline-block;
-  width: 14px;
-  height: 14px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-top-color: #fff;
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-  margin-right: 6px;
-  vertical-align: middle;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
 </style>

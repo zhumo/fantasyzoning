@@ -1,11 +1,11 @@
 <script setup>
-import { onMounted, ref, watch } from 'vue'
+import { onMounted, ref, computed, watch } from 'vue'
 import 'mapbox-gl/dist/mapbox-gl.css'
 
-import { useMapbox } from '../composables/useMapbox.js'
-import { useParcelData } from '../composables/useParcelData.js'
-import { useRules } from '../composables/useRules.js'
-import { useMapInteractions } from '../composables/useMapInteractions.js'
+import { mapbox } from '../composables/useMapbox.js'
+import { parcelData } from '../composables/useParcelData.js'
+import { rules } from '../composables/useRules.js'
+import { mapInteractions } from '../composables/useMapInteractions.js'
 import { DATASETS } from '../constants/datasets.js'
 
 import AppSidebar from './AppSidebar.vue'
@@ -19,82 +19,41 @@ const currentIndex = ref(0)
 const showRuleModal = ref(false)
 const showInfoModal = ref(false)
 const editingRule = ref(null)
+const mapContainer = ref(null)
 
-const {
-  map,
-  mapContainer,
-  mapRendering,
-  initializeMap,
-  clearLayers,
-  addParcelLayer,
-  addPublicParcelsLayer,
-  addHighlightLayer,
-  addTransitLayers,
-  updateMapColors,
-  setHighlightFeature,
-  onMapIdle,
-  onMapLoad
-} = useMapbox()
-
-const {
-  fzpZoningData,
-  allParcelsData,
-  parcelAttributes,
-  loading,
-  loadParcelData,
-  loadTransitData,
-  loadPublicParcels
-} = useParcelData()
-
-const {
-  userRules,
-  yourPlanLow,
-  yourPlanHigh,
-  calculating,
-  getProposedHeight,
-  recalculateProjections,
-  addRule,
-  updateRule,
-  removeRule
-} = useRules(parcelAttributes, allParcelsData)
-
-const {
-  hoveredParcel,
-  hoveredTransitStop,
-  tooltipPosition,
-  hoveredParcelStats,
-  setupParcelInteractions,
-  setupTransitInteractions
-} = useMapInteractions(map, fzpZoningData, setHighlightFeature)
+const plan = computed(() => ({
+  yourPlanLow: rules.yourPlanLow.value,
+  yourPlanHigh: rules.yourPlanHigh.value
+}))
 
 async function loadDataset() {
-  if (!map.value) return
+  if (!mapbox.map.value) return
 
-  loading.value = true
-  mapRendering.value = true
+  parcelData.loading.value = true
+  mapbox.mapRendering.value = true
   const dataset = DATASETS[currentIndex.value]
 
-  clearLayers()
+  mapbox.clearLayers()
 
   const [{ geometries }, transitData, publicGeojson] = await Promise.all([
-    loadParcelData(currentIndex.value),
-    loadTransitData(),
-    loadPublicParcels()
+    parcelData.loadParcelData(currentIndex.value),
+    parcelData.loadTransitData(),
+    parcelData.loadPublicParcels()
   ])
 
-  const geomType = addParcelLayer(geometries, dataset.color)
-  addPublicParcelsLayer(publicGeojson)
-  addHighlightLayer(geomType)
-  addTransitLayers(transitData.bart, transitData.muni, transitData.caltrain)
+  const geomType = mapbox.addParcelLayer(geometries, dataset.color)
+  mapbox.addPublicParcelsLayer(publicGeojson)
+  mapbox.addHighlightLayer(geomType)
+  mapbox.addTransitLayers(transitData.bart, transitData.muni, transitData.caltrain)
 
-  setupTransitInteractions()
-  setupParcelInteractions()
-  recalculateProjections()
+  mapInteractions.setupTransitInteractions()
+  mapInteractions.setupParcelInteractions()
+  rules.recalculateProjections()
 
-  loading.value = false
-  mapRendering.value = true
-  onMapIdle(() => {
-    mapRendering.value = false
+  parcelData.loading.value = false
+  mapbox.mapRendering.value = true
+  mapbox.onMapIdle(() => {
+    mapbox.mapRendering.value = false
   })
 }
 
@@ -110,32 +69,32 @@ function handleEditRule(rule) {
 
 function handleSaveRule(ruleData) {
   if (editingRule.value) {
-    updateRule(editingRule.value.id, ruleData)
+    rules.updateRule(editingRule.value.id, ruleData)
   } else {
-    addRule(ruleData)
+    rules.addRule(ruleData)
   }
-  recalculateProjections()
-  updateMapColors(getProposedHeight, parcelAttributes)
+  rules.recalculateProjections()
+  mapbox.updateMapColors(rules.getProposedHeight, parcelData.parcelAttributes)
   showRuleModal.value = false
   editingRule.value = null
 }
 
 async function handleRemoveRule(ruleId) {
-  mapRendering.value = true
-  removeRule(ruleId)
+  mapbox.mapRendering.value = true
+  rules.removeRule(ruleId)
   await new Promise(resolve => setTimeout(resolve, 0))
-  recalculateProjections()
-  updateMapColors(getProposedHeight, parcelAttributes)
-  onMapIdle(() => {
-    mapRendering.value = false
+  rules.recalculateProjections()
+  mapbox.updateMapColors(rules.getProposedHeight, parcelData.parcelAttributes)
+  mapbox.onMapIdle(() => {
+    mapbox.mapRendering.value = false
   })
 }
 
 watch(currentIndex, loadDataset)
 
 onMounted(() => {
-  initializeMap(mapContainer.value)
-  onMapLoad(loadDataset)
+  mapbox.initializeMap(mapContainer.value)
+  mapbox.onMapLoad(loadDataset)
 })
 </script>
 
@@ -143,31 +102,29 @@ onMounted(() => {
   <div class="container">
     <div class="main-content">
       <AppSidebar
-        :yourPlanLow="yourPlanLow"
-        :yourPlanHigh="yourPlanHigh"
-        :userRules="userRules"
-        :calculating="calculating"
+        :plan="plan"
+        :rules="rules.userRules.value"
         @addRule="handleAddRule"
         @editRule="handleEditRule"
         @removeRule="handleRemoveRule"
         @openInfo="showInfoModal = true"
       />
       <div class="map-wrapper">
-        <div v-if="mapRendering" class="map-loading-overlay">
+        <div v-if="mapbox.mapRendering.value" class="map-loading-overlay">
           <div class="spinner"></div>
           <div class="loading-text">Loading parcels...</div>
         </div>
         <div ref="mapContainer" class="map-container"></div>
         <MapTooltip
-          v-if="hoveredParcel"
-          :parcel="hoveredParcel"
-          :stats="hoveredParcelStats"
-          :position="tooltipPosition"
+          v-if="mapInteractions.hoveredParcel.value"
+          :parcel="mapInteractions.hoveredParcel.value"
+          :stats="mapInteractions.hoveredParcelStats.value"
+          :position="mapInteractions.tooltipPosition.value"
         />
         <TransitTooltip
-          v-if="hoveredTransitStop"
-          :stop="hoveredTransitStop"
-          :position="tooltipPosition"
+          v-if="mapInteractions.hoveredTransitStop.value"
+          :stop="mapInteractions.hoveredTransitStop.value"
+          :position="mapInteractions.tooltipPosition.value"
         />
         <MapLegend />
       </div>
