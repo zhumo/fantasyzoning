@@ -37,4 +37,9 @@ export default defineConfig({
       allow: [path.resolve(__dirname, '..')],
     },
   },
+  test: {
+    environment: 'happy-dom',
+    globals: true,
+    exclude: ['**/node_modules/**', '**/e2e/**'],
+  },
 })
