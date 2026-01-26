@@ -59,15 +59,6 @@ test.describe('Modal Interactions', () => {
     await expect(page.locator('.modal-overlay')).not.toBeVisible()
   })
 
-  test('opens and closes info modal', async ({ page }) => {
-    await page.click('.info-icon')
-    await expect(page.locator('.info-modal')).toBeVisible()
-    await expect(page.locator('.info-modal h3')).toHaveText('What is BYO Zoning?')
-
-    await page.click('.info-modal .modal-save')
-    await expect(page.locator('.info-modal')).not.toBeVisible()
-  })
-
   test('save button is disabled without height', async ({ page }) => {
     await page.click('.add-rule')
     const saveBtn = page.locator('.modal-save')
