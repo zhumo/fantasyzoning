@@ -129,6 +129,21 @@ def run():
     total_low = df['fzp_expected_units_low'].sum()
     total_high = df['fzp_expected_units_high'].sum()
 
+    EXPECTED_LOW = 29148
+    EXPECTED_HIGH = 48192
+    TOLERANCE = 0.01
+
+    RED = '\033[91m'
+    RESET = '\033[0m'
+
+    low_diff = abs(total_low - EXPECTED_LOW) / EXPECTED_LOW
+    high_diff = abs(total_high - EXPECTED_HIGH) / EXPECTED_HIGH
+
+    if low_diff >= TOLERANCE:
+        print(f"{RED}WARNING: Total units (low) differs from expected: {EXPECTED_LOW:,} expected, got {total_low:,.0f} (diff: {low_diff:.2%}){RESET}")
+    if high_diff >= TOLERANCE:
+        print(f"{RED}WARNING: Total units (high) differs from expected: {EXPECTED_HIGH:,} expected, got {total_high:,.0f} (diff: {high_diff:.2%}){RESET}")
+
     write_csv(df, STEP_DIR / 'output.csv')
     copy_to_next_step(STEP_DIR)
 
