@@ -3,47 +3,15 @@ import { readFileSync } from 'fs'
 import { fileURLToPath } from 'url'
 import { dirname, join } from 'path'
 import { UnitCalculator } from '../src/unitCalculator.js'
+import { parseNumericCSV } from '../src/helpers.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 
-function parseCSVLine(line) {
-  const values = []
-  let current = ''
-  let inQuotes = false
-  for (let i = 0; i < line.length; i++) {
-    const char = line[i]
-    if (char === '"') {
-      inQuotes = !inQuotes
-    } else if (char === ',' && !inQuotes) {
-      values.push(current.trim())
-      current = ''
-    } else {
-      current += char
-    }
-  }
-  values.push(current.trim())
-  return values
-}
-
 function loadParcelsModel() {
   const csvPath = join(__dirname, '../public/data/parcels-model.csv')
   const content = readFileSync(csvPath, 'utf-8')
-  const lines = content.split('\n')
-  const headers = parseCSVLine(lines[0])
-  const parcels = []
-
-  for (let i = 1; i < lines.length; i++) {
-    if (!lines[i].trim()) continue
-    const values = parseCSVLine(lines[i])
-    const parcel = {}
-    headers.forEach((header, idx) => {
-      const val = values[idx] || ''
-      parcel[header] = header === 'BlockLot' ? val : (parseFloat(val) || 0)
-    })
-    parcels.push(parcel)
-  }
-  return parcels
+  return parseNumericCSV(content)
 }
 
 const parcels = loadParcelsModel()
