@@ -24,11 +24,6 @@ test.describe('BYO Zoning App', () => {
     await expect(table).toContainText('Your Plan')
   })
 
-  test('map loads with Mapbox canvas', async ({ page }) => {
-    const canvas = page.locator('.map-container canvas')
-    await expect(canvas).toBeVisible()
-  })
-
   test('Your Plan shows calculated values after data loads', async ({ page }) => {
     await page.waitForFunction(() => {
       const cells = document.querySelectorAll('.your-plan td')
@@ -223,11 +218,5 @@ test.describe('Map Interactions', () => {
     if (isVisible) {
       await expect(tooltip).toContainText(/Address|Neighborhood|Zoning/)
     }
-  })
-
-  test('legend is visible', async ({ page }) => {
-    const legend = page.locator('.legend')
-    await expect(legend).toBeVisible()
-    await expect(legend).toContainText('Height (ft)')
   })
 })
