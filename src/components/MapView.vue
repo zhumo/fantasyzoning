@@ -787,12 +787,13 @@ onMounted(() => {
               v-model="newRule.proposedHeight"
               class="inline-input height-input"
               placeholder="ft"
+              aria-label="Height"
             />
             <span class="form-text">ft. for all parcels</span>
 
             <div class="criteria-row">
               <span class="form-text">in neighborhood</span>
-              <select v-model="newRule.neighborhood" class="inline-select">
+              <select v-model="newRule.neighborhood" class="inline-select" aria-label="Neighborhood">
                 <option value="">any</option>
                 <option v-for="n in NEIGHBORHOODS" :key="n" :value="n">{{ n }}</option>
               </select>
