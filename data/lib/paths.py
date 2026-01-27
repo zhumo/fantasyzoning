@@ -8,7 +8,7 @@ EXCEPTIONS_DIR = OUTPUT_DIR / 'exceptions'
 PUBLIC_DIR = DATA_DIR.parent / 'public' / 'data'
 
 INPUT_FILES = {
-    'parcels': DATA_DIR / 'active-and-retired-parcels.csv',
+    'parcels': INPUT_DIR / 'active-and-retired-parcels.csv',
     'model': INPUT_DIR / 'parcels-w-fzp-model-data.csv',
     'land_use': INPUT_DIR / 'land-use.csv',
     'zoning_district': INPUT_DIR / 'zoning-district.csv',

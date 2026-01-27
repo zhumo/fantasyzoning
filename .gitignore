@@ -12,13 +12,12 @@ dist
 dist-ssr
 *.local
 
-# Large data files (too big for GitHub)
-data/active-and-retired-parcels.csv
-data/land-use.csv
-
 # Step intermediate files
 data/steps/*/input.csv
 data/steps/*/output.csv
+
+# Large input data (download separately)
+data/input/active-and-retired-parcels.csv
 
 # Python
 __pycache__/
