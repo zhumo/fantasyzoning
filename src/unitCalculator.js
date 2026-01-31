@@ -22,7 +22,7 @@ function prepareParcel(parcel) {
   }
 }
 
-const PROB_WEIGHTS = {
+const PROB_REG_WEIGHTS = {
   Intercept: -1.6226,
   Height_Ft: 0.0017,
   Area_1000: 0.0049,
@@ -57,7 +57,7 @@ const PROB_WEIGHTS = {
   DIST_Mission: -1.0938
 }
 
-const UNITS_WEIGHTS = {
+const UNITS_REG_WEIGHTS = {
   Intercept: 0.0,
   Env_1000_Area_Height: 0.4252,
   SDB_2016_5Plus_EnvFull: 0.4385,
@@ -65,80 +65,72 @@ const UNITS_WEIGHTS = {
 }
 
 const MACRO_SCENARIOS = {
-  2026: { costs: 112.723, priceLow: 78.091, priceHigh: 78.091 },
-  2027: { costs: 112.723, priceLow: 77.203, priceHigh: 77.203 },
-  2028: { costs: 112.723, priceLow: 78.537, priceHigh: 86.719 },
-  2029: { costs: 112.723, priceLow: 79.895, priceHigh: 96.236 },
-  2030: { costs: 112.723, priceLow: 81.275, priceHigh: 105.752 },
-  2031: { costs: 112.723, priceLow: 82.680, priceHigh: 115.268 },
-  2032: { costs: 112.723, priceLow: 84.108, priceHigh: 124.784 },
-  2033: { costs: 112.723, priceLow: 85.562, priceHigh: 128.587 },
-  2034: { costs: 112.723, priceLow: 87.041, priceHigh: 132.506 },
-  2035: { costs: 112.723, priceLow: 88.545, priceHigh: 136.544 },
-  2036: { costs: 112.723, priceLow: 90.075, priceHigh: 140.706 },
-  2037: { costs: 112.723, priceLow: 91.631, priceHigh: 144.994 },
-  2038: { costs: 112.723, priceLow: 93.215, priceHigh: 149.413 },
-  2039: { costs: 112.723, priceLow: 94.826, priceHigh: 153.966 },
-  2040: { costs: 112.723, priceLow: 96.464, priceHigh: 158.659 },
-  2041: { costs: 112.723, priceLow: 98.131, priceHigh: 163.494 },
-  2042: { costs: 112.723, priceLow: 99.827, priceHigh: 168.477 },
-  2043: { costs: 112.723, priceLow: 101.552, priceHigh: 173.611 },
-  2044: { costs: 112.723, priceLow: 103.307, priceHigh: 178.902 },
-  2045: { costs: 112.723, priceLow: 105.092, priceHigh: 184.355 }
+  2026: { construction_costs: 112.723, zillow_re_prices: { low: 78.091, high: 78.091   } },
+  2027: { construction_costs: 112.723, zillow_re_prices: { low: 77.203, high: 77.203   } },
+  2028: { construction_costs: 112.723, zillow_re_prices: { low: 78.537, high: 86.719   } },
+  2029: { construction_costs: 112.723, zillow_re_prices: { low: 79.895, high: 96.236   } },
+  2030: { construction_costs: 112.723, zillow_re_prices: { low: 81.275, high: 105.752  } },
+  2031: { construction_costs: 112.723, zillow_re_prices: { low: 82.680, high: 115.268  } },
+  2032: { construction_costs: 112.723, zillow_re_prices: { low: 84.108, high: 124.784  } },
+  2033: { construction_costs: 112.723, zillow_re_prices: { low: 85.562, high: 128.587  } },
+  2034: { construction_costs: 112.723, zillow_re_prices: { low: 87.041, high: 132.506  } },
+  2035: { construction_costs: 112.723, zillow_re_prices: { low: 88.545, high: 136.544  } },
+  2036: { construction_costs: 112.723, zillow_re_prices: { low: 90.075, high: 140.706  } },
+  2037: { construction_costs: 112.723, zillow_re_prices: { low: 91.631, high: 144.994  } },
+  2038: { construction_costs: 112.723, zillow_re_prices: { low: 93.215, high: 149.413  } },
+  2039: { construction_costs: 112.723, zillow_re_prices: { low: 94.826, high: 153.966  } },
+  2040: { construction_costs: 112.723, zillow_re_prices: { low: 96.464, high: 158.659  } },
+  2041: { construction_costs: 112.723, zillow_re_prices: { low: 98.131, high: 163.494  } },
+  2042: { construction_costs: 112.723, zillow_re_prices: { low: 99.827, high: 168.477  } },
+  2043: { construction_costs: 112.723, zillow_re_prices: { low: 101.552, high: 173.611 } },
+  2044: { construction_costs: 112.723, zillow_re_prices: { low: 103.307, high: 178.902 } },
+  2045: { construction_costs: 112.723, zillow_re_prices: { low: 105.092, high: 184.355 } },
 }
 
-// CLAUDE: Why are we maintaining the list of parcel field names in two separate places? Could you consolidate?
-// e.g. for k, v in PROBWEIGHTS: return v * parcel[k];
-// Something like this ^. What's wrong with this?
-
-const PARCEL_FIELDS = [
-  'Height_Ft', 'Area_1000', 'Env_1000_Area_Height', 'Bldg_SqFt_1000',
-  'Res_Dummy', 'Historic', 'SDB_2016_5Plus',
-  'zp_OfficeComm', 'zp_DRMulti_RTO', 'zp_FBDMulti_RTO', 'zp_PDRInd',
-  'zp_Public', 'zp_Redev', 'zp_RH2', 'zp_RH3_RM1',
-  'DIST_SBayshore', 'DIST_BernalHts', 'DIST_Scentral', 'DIST_Central',
-  'DIST_BuenaVista', 'DIST_Northeast', 'DIST_WestAddition', 'DIST_SOMA',
-  'DIST_InnerSunset', 'DIST_Richmond', 'DIST_Ingleside', 'DIST_OuterSunset',
-  'DIST_Marina', 'DIST_Mission'
-]
+const MACRO_FIELDS = ['Intercept', 'Const_Costs_Real', 'Zillow_Price_Real']
 
 function sigmoid(z) {
   return 1 / (1 + Math.exp(-z))
 }
 
 function calcAnnualProbability(parcel, year, scenario) {
+  if(!["high", "low"].includes(scenario)) {
+    throw new Error(`Invalid pricing scenario for parcel calculation: ${scenario}. Must be "high" or "low".`)
+  }
   const macro = MACRO_SCENARIOS[year]
-  // CLAUDE: Why check?
-  const price = scenario === 'high' ? macro.priceHigh : macro.priceLow
 
-  let z = PROB_WEIGHTS.Intercept
-  z += PROB_WEIGHTS.Const_Costs_Real * macro.costs
-  z += PROB_WEIGHTS.Zillow_Price_Real * price
+  let z = PROB_REG_WEIGHTS.Intercept
+  z += PROB_REG_WEIGHTS.Const_Costs_Real * macro.construction_costs
+  z += PROB_REG_WEIGHTS.Zillow_Price_Real * macro.zillow_re_prices[scenario]
 
-  for (const field of PARCEL_FIELDS) {
-    // CLAUDE: don't auto-assume 0. If any of these are not present, then return null
-    z += PROB_WEIGHTS[field] * (parcel[field] || 0)
+  for (const field of Object.keys(PROB_REG_WEIGHTS)) {
+    if (MACRO_FIELDS.includes(field)) continue
+    if (parcel[field] === undefined) return null
+    z += PROB_REG_WEIGHTS[field] * parcel[field]
   }
 
   return sigmoid(z)
 }
 
 function calc20YearProbability(parcel, scenario) {
-  // CLAUDE: Could this probDeveloped and then start from 0? 
   let probNotDeveloped = 1.0
-  for (let year = 2026; year <= 2045; year++) {
+  for (const year in MACRO_SCENARIOS) {
     const annualProb = calcAnnualProbability(parcel, year, scenario)
+    if (annualProb === null) return null
     probNotDeveloped *= (1 - annualProb)
   }
   return 1 - probNotDeveloped
 }
 
 function calcUnitsIfRedeveloped(parcel) {
-  let units = UNITS_WEIGHTS.Intercept
-  // CLAUDE: don't auto-assume 0. If any of these are not present, then return null
-  units += UNITS_WEIGHTS.Env_1000_Area_Height * (parcel.Env_1000_Area_Height || 0)
-  units += UNITS_WEIGHTS.SDB_2016_5Plus_EnvFull * (parcel.SDB_2016_5Plus_EnvFull || 0)
-  units += UNITS_WEIGHTS.Zoning_DR_EnvFull * (parcel.Zoning_DR_EnvFull || 0)
+  for (const field of Object.keys(UNITS_REG_WEIGHTS)) {
+    if (field === 'Intercept') continue
+    if (parcel[field] === undefined) return null
+  }
+  let units = UNITS_REG_WEIGHTS.Intercept
+  units += UNITS_REG_WEIGHTS.Env_1000_Area_Height * parcel.Env_1000_Area_Height
+  units += UNITS_REG_WEIGHTS.SDB_2016_5Plus_EnvFull * parcel.SDB_2016_5Plus_EnvFull
+  units += UNITS_REG_WEIGHTS.Zoning_DR_EnvFull * parcel.Zoning_DR_EnvFull
   return Math.max(0, units)
 }
 
@@ -146,11 +138,15 @@ function calcExpectedUnits(parcel, scenario) {
   const prepared = prepareParcel(parcel)
   const prob = calc20YearProbability(prepared, scenario)
   const units = calcUnitsIfRedeveloped(prepared)
+  if (prob === null || units === null) return null
   return prob * units
 }
 
 function calcTotalExpectedUnits(parcels, scenario) {
-  return parcels.reduce((sum, parcel) => sum + calcExpectedUnits(parcel, scenario), 0)
+  return parcels.reduce((sum, parcel) => {
+    const units = calcExpectedUnits(parcel, scenario)
+    return sum + (units ?? 0)
+  }, 0)
 }
 
 export const UnitCalculator = {
