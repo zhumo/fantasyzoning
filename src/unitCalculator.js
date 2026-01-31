@@ -63,6 +63,10 @@ const MACRO_SCENARIOS = {
   2045: { costs: 112.723, priceLow: 105.092, priceHigh: 184.355 }
 }
 
+// CLAUDE: Why are we maintaining the list of parcel field names in two separate places? Could you consolidate?
+// e.g. for k, v in PROBWEIGHTS: return v * parcel[k];
+// Something like this ^. What's wrong with this?
+
 const PARCEL_FIELDS = [
   'Height_Ft', 'Area_1000', 'Env_1000_Area_Height', 'Bldg_SqFt_1000',
   'Res_Dummy', 'Historic', 'SDB_2016_5Plus',
@@ -80,6 +84,7 @@ function sigmoid(z) {
 
 function calcAnnualProbability(parcel, year, scenario) {
   const macro = MACRO_SCENARIOS[year]
+  // CLAUDE: Why check?
   const price = scenario === 'high' ? macro.priceHigh : macro.priceLow
 
   let z = PROB_WEIGHTS.Intercept
@@ -87,6 +92,7 @@ function calcAnnualProbability(parcel, year, scenario) {
   z += PROB_WEIGHTS.Zillow_Price_Real * price
 
   for (const field of PARCEL_FIELDS) {
+    // CLAUDE: don't auto-assume 0. If any of these are not present, then return null
     z += PROB_WEIGHTS[field] * (parcel[field] || 0)
   }
 
@@ -94,6 +100,7 @@ function calcAnnualProbability(parcel, year, scenario) {
 }
 
 function calc20YearProbability(parcel, scenario) {
+  // CLAUDE: Could this probDeveloped and then start from 0? 
   let probNotDeveloped = 1.0
   for (let year = 2026; year <= 2045; year++) {
     const annualProb = calcAnnualProbability(parcel, year, scenario)
@@ -104,6 +111,7 @@ function calc20YearProbability(parcel, scenario) {
 
 function calcUnitsIfRedeveloped(parcel) {
   let units = UNITS_WEIGHTS.Intercept
+  // CLAUDE: don't auto-assume 0. If any of these are not present, then return null
   units += UNITS_WEIGHTS.Env_1000_Area_Height * (parcel.Env_1000_Area_Height || 0)
   units += UNITS_WEIGHTS.SDB_2016_5Plus_EnvFull * (parcel.SDB_2016_5Plus_EnvFull || 0)
   units += UNITS_WEIGHTS.Zoning_DR_EnvFull * (parcel.Zoning_DR_EnvFull || 0)
@@ -111,6 +119,7 @@ function calcUnitsIfRedeveloped(parcel) {
 }
 
 function calcExpectedUnits(parcel, scenario) {
+  // CLAUDE: as per above, if either of these return null, then return null
   const prob = calc20YearProbability(parcel, scenario)
   const units = calcUnitsIfRedeveloped(parcel)
   return prob * units
@@ -120,6 +129,7 @@ function calcTotalExpectedUnits(parcels, scenario) {
   return parcels.reduce((sum, parcel) => sum + calcExpectedUnits(parcel, scenario), 0)
 }
 
+// CLAUDE: Why is there an export here? What other objects are using these functions?
 export const UnitCalculator = {
   calcAnnualProbability,
   calc20YearProbability,
