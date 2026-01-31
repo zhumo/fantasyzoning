@@ -3,6 +3,8 @@ import { readFileSync } from 'fs'
 import { fileURLToPath } from 'url'
 import { dirname, join } from 'path'
 import { ParcelCalculator } from '../src/parcelCalculator.js'
+import constructionCosts from '../src/data/construction-costs.json'
+import zillowRePrices from '../src/data/zillow-re-prices.json'
 import { parseNumericCSV } from '../src/helpers.js'
 
 describe('ParcelCalculator derivation functions', () => {
@@ -109,6 +111,20 @@ describe('ParcelCalculator with real parcel data', () => {
 })
 
 describe('ParcelCalculator model properties', () => {
+  it('macro data covers 2026-2045', () => {
+    for (let year = 2026; year <= 2045; year++) {
+      expect(constructionCosts[year]).toBeDefined()
+      expect(zillowRePrices[year]).toBeDefined()
+      expect(zillowRePrices[year].low).toBeDefined()
+      expect(zillowRePrices[year].high).toBeDefined()
+    }
+  })
+
+  it('high prices diverge from low prices after 2027', () => {
+    expect(zillowRePrices[2027].low).toBe(zillowRePrices[2027].high)
+    expect(zillowRePrices[2028].high).toBeGreaterThan(zillowRePrices[2028].low)
+  })
+
   it('higher envelope produces more units', () => {
     const baseParcel = parcels.find(p => p.Env_1000_Area_Height > 0 && p.Env_1000_Area_Height < 50)
     const higherEnvelope = { ...baseParcel, Height_Ft: baseParcel.Height_Ft * 2 }

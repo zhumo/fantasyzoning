@@ -8,16 +8,6 @@ const SDB_HEIGHT_CAP = 130
 
 const MACRO_FIELDS = ['Intercept', 'Const_Costs_Real', 'Zillow_Price_Real']
 
-export const MACRO_SCENARIOS = Object.fromEntries(
-  Object.keys(constructionCosts).map(year => [
-    year,
-    {
-      construction_costs: constructionCosts[year],
-      zillow_re_prices: zillowRePrices[year]
-    }
-  ])
-)
-
 export class ParcelCalculator {
   constructor(parcel) {
     this.prepared = ParcelCalculator.prepareParcel(parcel)
