@@ -1,27 +1,6 @@
 const SDB_ENVELOPE_THRESHOLD = 9.0
 const SDB_HEIGHT_CAP = 130
 
-function computeEnvelope(parcel) {
-  return parcel.Area_1000 * parcel.Height_Ft / 10
-}
-
-function computeSdbQualification(parcel) {
-  const envelope = computeEnvelope(parcel)
-  return envelope > SDB_ENVELOPE_THRESHOLD && parcel.Height_Ft <= SDB_HEIGHT_CAP
-}
-
-function prepareParcel(parcel) {
-  const envelope = computeEnvelope(parcel)
-  const sdb = computeSdbQualification(parcel)
-
-  return {
-    ...parcel,
-    Env_1000_Area_Height: envelope,
-    SDB_2016_5Plus: sdb,
-    SDB_2016_5Plus_EnvFull: sdb * envelope
-  }
-}
-
 const PROB_REG_WEIGHTS = {
   Intercept: -1.6226,
   Height_Ft: 0.0017,
@@ -64,7 +43,7 @@ const UNITS_REG_WEIGHTS = {
   Zoning_DR_EnvFull: -0.1601
 }
 
-const MACRO_SCENARIOS = {
+export const MACRO_SCENARIOS = {
   2026: { construction_costs: 112.723, zillow_re_prices: { low: 78.091, high: 78.091   } },
   2027: { construction_costs: 112.723, zillow_re_prices: { low: 77.203, high: 77.203   } },
   2028: { construction_costs: 112.723, zillow_re_prices: { low: 78.537, high: 86.719   } },
@@ -89,14 +68,32 @@ const MACRO_SCENARIOS = {
 
 const MACRO_FIELDS = ['Intercept', 'Const_Costs_Real', 'Zillow_Price_Real']
 
+function computeEnvelope(parcel) {
+  return parcel.Area_1000 * parcel.Height_Ft / 10
+}
+
+function computeSdbQualification(parcel) {
+  const envelope = computeEnvelope(parcel)
+  return envelope > SDB_ENVELOPE_THRESHOLD && parcel.Height_Ft <= SDB_HEIGHT_CAP
+}
+
+function prepareParcel(parcel) {
+  const envelope = computeEnvelope(parcel)
+  const sdb = computeSdbQualification(parcel)
+
+  return {
+    ...parcel,
+    Env_1000_Area_Height: envelope,
+    SDB_2016_5Plus: sdb,
+    SDB_2016_5Plus_EnvFull: sdb * envelope
+  }
+}
+
 function sigmoid(z) {
   return 1 / (1 + Math.exp(-z))
 }
 
 function calcAnnualProbability(parcel, year, scenario) {
-  if(!["high", "low"].includes(scenario)) {
-    throw new Error(`Invalid pricing scenario for parcel calculation: ${scenario}. Must be "high" or "low".`)
-  }
   const macro = MACRO_SCENARIOS[year]
 
   let z = PROB_REG_WEIGHTS.Intercept
@@ -134,27 +131,46 @@ function calcUnitsIfRedeveloped(parcel) {
   return Math.max(0, units)
 }
 
-function calcExpectedUnits(parcel, scenario) {
-  const prepared = prepareParcel(parcel)
-  const prob = calc20YearProbability(prepared, scenario)
-  const units = calcUnitsIfRedeveloped(prepared)
-  if (prob === null || units === null) return null
-  return prob * units
-}
+export class ParcelCalculator {
+  constructor(parcel) {
+    this.prepared = prepareParcel(parcel)
+  }
 
-function calcTotalExpectedUnits(parcels, scenario) {
-  return parcels.reduce((sum, parcel) => {
-    const units = calcExpectedUnits(parcel, scenario)
-    return sum + (units ?? 0)
-  }, 0)
-}
+  getProbabilityLow() {
+    return calc20YearProbability(this.prepared, 'low')
+  }
 
-export const UnitCalculator = {
-  calc20YearProbability,
-  calcUnitsIfRedeveloped,
-  calcExpectedUnits,
-  MACRO_SCENARIOS,
-  prepareParcel,
-  computeEnvelope,
-  computeSdbQualification,
+  getProbabilityHigh() {
+    return calc20YearProbability(this.prepared, 'high')
+  }
+
+  getUnitsIfRedeveloped() {
+    return calcUnitsIfRedeveloped(this.prepared)
+  }
+
+  getExpectedUnitsLow() {
+    const prob = this.getProbabilityLow()
+    const units = this.getUnitsIfRedeveloped()
+    if (prob === null || units === null) return null
+    return prob * units
+  }
+
+  getExpectedUnitsHigh() {
+    const prob = this.getProbabilityHigh()
+    const units = this.getUnitsIfRedeveloped()
+    if (prob === null || units === null) return null
+    return prob * units
+  }
+
+  static computeEnvelope(parcel) {
+    return computeEnvelope(parcel)
+  }
+
+  static computeSdbQualification(parcel) {
+    return computeSdbQualification(parcel)
+  }
+
+  static prepareParcel(parcel) {
+    return prepareParcel(parcel)
+  }
 }
