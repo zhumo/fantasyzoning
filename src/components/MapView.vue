@@ -2,7 +2,7 @@
 import { onMounted, ref, watch, computed } from 'vue';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
-import { ParcelCalculator } from '../unitCalculator.js';
+import { ParcelCalculator } from '../parcelCalculator.js';
 import {
   parseCSV,
   ruleMatchesParcel,

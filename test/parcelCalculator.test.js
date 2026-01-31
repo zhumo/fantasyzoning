@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'fs'
 import { fileURLToPath } from 'url'
 import { dirname, join } from 'path'
-import { ParcelCalculator, MACRO_SCENARIOS } from '../src/unitCalculator.js'
+import { ParcelCalculator, MACRO_SCENARIOS } from '../src/parcelCalculator.js'
 import { parseNumericCSV } from '../src/helpers.js'
 
 describe('ParcelCalculator derivation functions', () => {
