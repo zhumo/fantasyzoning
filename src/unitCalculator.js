@@ -1,3 +1,27 @@
+const SDB_ENVELOPE_THRESHOLD = 9.0
+const SDB_HEIGHT_CAP = 130
+
+function computeEnvelope(parcel) {
+  return parcel.Area_1000 * parcel.Height_Ft / 10
+}
+
+function computeSdbQualification(parcel) {
+  const envelope = computeEnvelope(parcel)
+  return envelope > SDB_ENVELOPE_THRESHOLD && parcel.Height_Ft <= SDB_HEIGHT_CAP
+}
+
+function prepareParcel(parcel) {
+  const envelope = computeEnvelope(parcel)
+  const sdb = computeSdbQualification(parcel)
+
+  return {
+    ...parcel,
+    Env_1000_Area_Height: envelope,
+    SDB_2016_5Plus: sdb,
+    SDB_2016_5Plus_EnvFull: sdb * envelope
+  }
+}
+
 const PROB_WEIGHTS = {
   Intercept: -1.6226,
   Height_Ft: 0.0017,
@@ -119,9 +143,9 @@ function calcUnitsIfRedeveloped(parcel) {
 }
 
 function calcExpectedUnits(parcel, scenario) {
-  // CLAUDE: as per above, if either of these return null, then return null
-  const prob = calc20YearProbability(parcel, scenario)
-  const units = calcUnitsIfRedeveloped(parcel)
+  const prepared = prepareParcel(parcel)
+  const prob = calc20YearProbability(prepared, scenario)
+  const units = calcUnitsIfRedeveloped(prepared)
   return prob * units
 }
 
@@ -129,14 +153,12 @@ function calcTotalExpectedUnits(parcels, scenario) {
   return parcels.reduce((sum, parcel) => sum + calcExpectedUnits(parcel, scenario), 0)
 }
 
-// CLAUDE: Why is there an export here? What other objects are using these functions?
 export const UnitCalculator = {
-  calcAnnualProbability,
   calc20YearProbability,
   calcUnitsIfRedeveloped,
   calcExpectedUnits,
-  calcTotalExpectedUnits,
-  PROB_WEIGHTS,
-  UNITS_WEIGHTS,
-  MACRO_SCENARIOS
+  MACRO_SCENARIOS,
+  prepareParcel,
+  computeEnvelope,
+  computeSdbQualification,
 }

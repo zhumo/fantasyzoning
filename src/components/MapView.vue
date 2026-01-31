@@ -4,7 +4,6 @@ import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { UnitCalculator } from '../unitCalculator.js';
 import {
-  computeSdbQualification,
   parseCSV,
   parseNumericCSV,
   ruleMatchesParcel,
