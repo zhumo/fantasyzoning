@@ -149,7 +149,6 @@ function calcTotalExpectedUnits(parcels, scenario) {
   }, 0)
 }
 
-// CLAUDE: Why is there an export here? What other objects are using these functions?
 export const UnitCalculator = {
   calc20YearProbability,
   calcUnitsIfRedeveloped,
