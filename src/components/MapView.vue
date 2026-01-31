@@ -2,7 +2,7 @@
 import { onMounted, ref, watch, computed } from 'vue';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
-import { UnitCalculator } from '../unitCalculator.js';
+import { ParcelCalculator } from '../parcelCalculator.js';
 import {
   parseCSV,
   ruleMatchesParcel,
@@ -55,16 +55,12 @@ const hoveredParcelStats = computed(() => {
   if (proposedHeight > fzpParcel.Height_Ft) {
     modifiedParcel.Height_Ft = proposedHeight;
   }
-  const prepared = UnitCalculator.prepareParcel(modifiedParcel);
-
-  const probLow = UnitCalculator.calc20YearProbability(prepared, 'low');
-  const probHigh = UnitCalculator.calc20YearProbability(prepared, 'high');
-  const units = UnitCalculator.calcUnitsIfRedeveloped(prepared);
+  const calc = new ParcelCalculator(modifiedParcel);
 
   return {
-    probLow: (probLow * 100).toFixed(1),
-    probHigh: (probHigh * 100).toFixed(1),
-    units: units.toFixed(1)
+    probLow: (calc.getProbabilityLow() * 100).toFixed(1),
+    probHigh: (calc.getProbabilityHigh() * 100).toFixed(1),
+    units: calc.getUnitsIfRedeveloped().toFixed(1)
   };
 });
 
@@ -200,7 +196,8 @@ function calcExpectedUnitsWithCache(parcel, height, scenario) {
   }
 
   const modifiedParcel = { ...parcel, Height_Ft: height };
-  const result = UnitCalculator.calcExpectedUnits(modifiedParcel, scenario);
+  const calc = new ParcelCalculator(modifiedParcel);
+  const result = scenario === 'low' ? calc.getExpectedUnitsLow() : calc.getExpectedUnitsHigh();
   parcel.unitsCache[cacheKey] = result;
   return result;
 }

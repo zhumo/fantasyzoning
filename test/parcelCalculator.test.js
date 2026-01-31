@@ -2,24 +2,24 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'fs'
 import { fileURLToPath } from 'url'
 import { dirname, join } from 'path'
-import { UnitCalculator } from '../src/unitCalculator.js'
+import { ParcelCalculator, MACRO_SCENARIOS } from '../src/parcelCalculator.js'
 import { parseNumericCSV } from '../src/helpers.js'
 
-describe('UnitCalculator derivation functions', () => {
+describe('ParcelCalculator derivation functions', () => {
   it('computeEnvelope calculates correctly', () => {
-    expect(UnitCalculator.computeEnvelope({ Area_1000: 10, Height_Ft: 100 })).toBe(100)
-    expect(UnitCalculator.computeEnvelope({ Area_1000: 5, Height_Ft: 40 })).toBe(20)
+    expect(ParcelCalculator.computeEnvelope({ Area_1000: 10, Height_Ft: 100 })).toBe(100)
+    expect(ParcelCalculator.computeEnvelope({ Area_1000: 5, Height_Ft: 40 })).toBe(20)
   })
 
   it('computeSdbQualification returns boolean based on parcel', () => {
-    expect(UnitCalculator.computeSdbQualification({ Area_1000: 10, Height_Ft: 100 })).toBe(true)
-    expect(UnitCalculator.computeSdbQualification({ Area_1000: 0.9, Height_Ft: 100 })).toBe(false)
-    expect(UnitCalculator.computeSdbQualification({ Area_1000: 10, Height_Ft: 131 })).toBe(false)
+    expect(ParcelCalculator.computeSdbQualification({ Area_1000: 10, Height_Ft: 100 })).toBe(true)
+    expect(ParcelCalculator.computeSdbQualification({ Area_1000: 0.9, Height_Ft: 100 })).toBe(false)
+    expect(ParcelCalculator.computeSdbQualification({ Area_1000: 10, Height_Ft: 131 })).toBe(false)
   })
 
   it('prepareParcel derives all fields', () => {
     const parcel = { Area_1000: 10, Height_Ft: 100 }
-    const prepared = UnitCalculator.prepareParcel(parcel)
+    const prepared = ParcelCalculator.prepareParcel(parcel)
     expect(prepared.Env_1000_Area_Height).toBe(100)
     expect(prepared.SDB_2016_5Plus).toBe(true)
     expect(prepared.SDB_2016_5Plus_EnvFull).toBe(100)
@@ -27,7 +27,7 @@ describe('UnitCalculator derivation functions', () => {
 
   it('prepareParcel sets SDB fields to 0 when not qualified', () => {
     const parcel = { Area_1000: 0.5, Height_Ft: 50 }
-    const prepared = UnitCalculator.prepareParcel(parcel)
+    const prepared = ParcelCalculator.prepareParcel(parcel)
     expect(prepared.Env_1000_Area_Height).toBe(2.5)
     expect(prepared.SDB_2016_5Plus).toBe(false)
     expect(prepared.SDB_2016_5Plus_EnvFull).toBe(0)
@@ -45,7 +45,7 @@ function loadParcelsModel() {
 
 const parcels = loadParcelsModel()
 
-describe('UnitCalculator with real parcel data', () => {
+describe('ParcelCalculator with real parcel data', () => {
   it(`loads ${parcels.length.toLocaleString()} parcels from parcels-model.csv`, () => {
     expect(parcels.length).toBeGreaterThan(100000)
   })
@@ -56,7 +56,8 @@ describe('UnitCalculator with real parcel data', () => {
     let matchCount = 0
 
     for (const parcel of parcels) {
-      const calculatedLow = UnitCalculator.calcExpectedUnits(parcel, 'low')
+      const calc = new ParcelCalculator(parcel)
+      const calculatedLow = calc.getExpectedUnitsLow()
       const expectedLow = parcel.fzp_expected_units_low
 
       if (expectedLow === 0 && calculatedLow === 0) {
@@ -79,8 +80,9 @@ describe('UnitCalculator with real parcel data', () => {
     let csvTotalHigh = 0
 
     for (const parcel of parcels) {
-      calcTotalLow += UnitCalculator.calcExpectedUnits(parcel, 'low')
-      calcTotalHigh += UnitCalculator.calcExpectedUnits(parcel, 'high')
+      const calc = new ParcelCalculator(parcel)
+      calcTotalLow += calc.getExpectedUnitsLow()
+      calcTotalHigh += calc.getExpectedUnitsHigh()
       csvTotalLow += parcel.fzp_expected_units_low
       csvTotalHigh += parcel.fzp_expected_units_high
     }
@@ -106,60 +108,58 @@ describe('UnitCalculator with real parcel data', () => {
   })
 })
 
-describe('UnitCalculator model properties', () => {
+describe('ParcelCalculator model properties', () => {
   it('MACRO_SCENARIOS covers 2026-2045', () => {
     for (let year = 2026; year <= 2045; year++) {
-      expect(UnitCalculator.MACRO_SCENARIOS[year]).toBeDefined()
-      expect(UnitCalculator.MACRO_SCENARIOS[year].construction_costs).toBeDefined()
-      expect(UnitCalculator.MACRO_SCENARIOS[year].zillow_re_prices.low).toBeDefined()
-      expect(UnitCalculator.MACRO_SCENARIOS[year].zillow_re_prices.high).toBeDefined()
+      expect(MACRO_SCENARIOS[year]).toBeDefined()
+      expect(MACRO_SCENARIOS[year].construction_costs).toBeDefined()
+      expect(MACRO_SCENARIOS[year].zillow_re_prices.low).toBeDefined()
+      expect(MACRO_SCENARIOS[year].zillow_re_prices.high).toBeDefined()
     }
   })
 
   it('high prices diverge from low prices after 2027', () => {
-    expect(UnitCalculator.MACRO_SCENARIOS[2027].zillow_re_prices.low)
-      .toBe(UnitCalculator.MACRO_SCENARIOS[2027].zillow_re_prices.high)
-    expect(UnitCalculator.MACRO_SCENARIOS[2028].zillow_re_prices.high)
-      .toBeGreaterThan(UnitCalculator.MACRO_SCENARIOS[2028].zillow_re_prices.low)
+    expect(MACRO_SCENARIOS[2027].zillow_re_prices.low)
+      .toBe(MACRO_SCENARIOS[2027].zillow_re_prices.high)
+    expect(MACRO_SCENARIOS[2028].zillow_re_prices.high)
+      .toBeGreaterThan(MACRO_SCENARIOS[2028].zillow_re_prices.low)
   })
 
   it('higher envelope produces more units', () => {
     const baseParcel = parcels.find(p => p.Env_1000_Area_Height > 0 && p.Env_1000_Area_Height < 50)
-    const higherEnvelope = { ...baseParcel, Env_1000_Area_Height: baseParcel.Env_1000_Area_Height * 2 }
+    const higherEnvelope = { ...baseParcel, Height_Ft: baseParcel.Height_Ft * 2 }
 
-    const baseUnits = UnitCalculator.calcUnitsIfRedeveloped(baseParcel)
-    const higherUnits = UnitCalculator.calcUnitsIfRedeveloped(higherEnvelope)
+    const baseCalc = new ParcelCalculator(baseParcel)
+    const higherCalc = new ParcelCalculator(higherEnvelope)
 
-    expect(higherUnits).toBeGreaterThan(baseUnits)
+    expect(higherCalc.getUnitsIfRedeveloped()).toBeGreaterThan(baseCalc.getUnitsIfRedeveloped())
   })
 
   it('historic parcels have lower redevelopment probability', () => {
     const nonHistoric = parcels.find(p => p.Historic === 0 && p.Height_Ft > 40)
     const historicVersion = { ...nonHistoric, Historic: 1 }
 
-    const probNonHistoric = UnitCalculator.calc20YearProbability(nonHistoric, 'low')
-    const probHistoric = UnitCalculator.calc20YearProbability(historicVersion, 'low')
+    const nonHistoricCalc = new ParcelCalculator(nonHistoric)
+    const historicCalc = new ParcelCalculator(historicVersion)
 
-    expect(probHistoric).toBeLessThan(probNonHistoric)
+    expect(historicCalc.getProbabilityLow()).toBeLessThan(nonHistoricCalc.getProbabilityLow())
   })
 
   it('SDB parcels produce more units', () => {
-    const parcel = parcels.find(p => p.Env_1000_Area_Height > 20)
-    const withSDB = { ...parcel, SDB_2016_5Plus: 1, SDB_2016_5Plus_EnvFull: parcel.Env_1000_Area_Height }
-    const withoutSDB = { ...parcel, SDB_2016_5Plus: 0, SDB_2016_5Plus_EnvFull: 0 }
+    const parcel = parcels.find(p => p.Env_1000_Area_Height > 20 && p.Height_Ft <= 130)
+    const envelope = parcel.Area_1000 * parcel.Height_Ft / 10
+    const withoutSDB = { ...parcel, Height_Ft: 131, Area_1000: envelope * 10 / 131 }
 
-    const unitsWithSDB = UnitCalculator.calcUnitsIfRedeveloped(withSDB)
-    const unitsWithoutSDB = UnitCalculator.calcUnitsIfRedeveloped(withoutSDB)
+    const withSDBCalc = new ParcelCalculator(parcel)
+    const withoutSDBCalc = new ParcelCalculator(withoutSDB)
 
-    expect(unitsWithSDB).toBeGreaterThan(unitsWithoutSDB)
+    expect(withSDBCalc.getUnitsIfRedeveloped()).toBeGreaterThan(withoutSDBCalc.getUnitsIfRedeveloped())
   })
 
   it('high scenario produces more expected units than low', () => {
     const parcel = parcels.find(p => p.Env_1000_Area_Height > 10)
+    const calc = new ParcelCalculator(parcel)
 
-    const lowUnits = UnitCalculator.calcExpectedUnits(parcel, 'low')
-    const highUnits = UnitCalculator.calcExpectedUnits(parcel, 'high')
-
-    expect(highUnits).toBeGreaterThanOrEqual(lowUnits)
+    expect(calc.getExpectedUnitsHigh()).toBeGreaterThanOrEqual(calc.getExpectedUnitsLow())
   })
 })
