@@ -110,17 +110,17 @@ describe('UnitCalculator model properties', () => {
   it('MACRO_SCENARIOS covers 2026-2045', () => {
     for (let year = 2026; year <= 2045; year++) {
       expect(UnitCalculator.MACRO_SCENARIOS[year]).toBeDefined()
-      expect(UnitCalculator.MACRO_SCENARIOS[year].costs).toBeDefined()
-      expect(UnitCalculator.MACRO_SCENARIOS[year].priceLow).toBeDefined()
-      expect(UnitCalculator.MACRO_SCENARIOS[year].priceHigh).toBeDefined()
+      expect(UnitCalculator.MACRO_SCENARIOS[year].construction_costs).toBeDefined()
+      expect(UnitCalculator.MACRO_SCENARIOS[year].zillow_re_prices.low).toBeDefined()
+      expect(UnitCalculator.MACRO_SCENARIOS[year].zillow_re_prices.high).toBeDefined()
     }
   })
 
   it('high prices diverge from low prices after 2027', () => {
-    expect(UnitCalculator.MACRO_SCENARIOS[2027].priceLow)
-      .toBe(UnitCalculator.MACRO_SCENARIOS[2027].priceHigh)
-    expect(UnitCalculator.MACRO_SCENARIOS[2028].priceHigh)
-      .toBeGreaterThan(UnitCalculator.MACRO_SCENARIOS[2028].priceLow)
+    expect(UnitCalculator.MACRO_SCENARIOS[2027].zillow_re_prices.low)
+      .toBe(UnitCalculator.MACRO_SCENARIOS[2027].zillow_re_prices.high)
+    expect(UnitCalculator.MACRO_SCENARIOS[2028].zillow_re_prices.high)
+      .toBeGreaterThan(UnitCalculator.MACRO_SCENARIOS[2028].zillow_re_prices.low)
   })
 
   it('higher envelope produces more units', () => {
