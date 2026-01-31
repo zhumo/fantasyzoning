@@ -8,16 +8,6 @@ const SDB_HEIGHT_CAP = 130
 
 const MACRO_FIELDS = ['Intercept', 'Const_Costs_Real', 'Zillow_Price_Real']
 
-export const MACRO_SCENARIOS = Object.fromEntries(
-  Object.keys(constructionCosts).map(year => [
-    year,
-    {
-      construction_costs: constructionCosts[year],
-      zillow_re_prices: zillowRePrices[year]
-    }
-  ])
-)
-
 export class ParcelCalculator {
   constructor(parcel) {
     this.prepared = ParcelCalculator.prepareParcel(parcel)
@@ -49,11 +39,9 @@ export class ParcelCalculator {
   }
 
   calcAnnualProbability(year, scenario) {
-    const macro = MACRO_SCENARIOS[year]
-
     let z = PROB_REG_WEIGHTS.Intercept
-    z += PROB_REG_WEIGHTS.Const_Costs_Real * macro.construction_costs
-    z += PROB_REG_WEIGHTS.Zillow_Price_Real * macro.zillow_re_prices[scenario]
+    z += PROB_REG_WEIGHTS.Const_Costs_Real * constructionCosts[year]
+    z += PROB_REG_WEIGHTS.Zillow_Price_Real * zillowRePrices[year][scenario]
 
     for (const field of Object.keys(PROB_REG_WEIGHTS)) {
       if (MACRO_FIELDS.includes(field)) continue
@@ -66,7 +54,7 @@ export class ParcelCalculator {
 
   calc20YearProbability(scenario) {
     let probNotDeveloped = 1.0
-    for (const year in MACRO_SCENARIOS) {
+    for (const year in constructionCosts) {
       const annualProb = this.calcAnnualProbability(year, scenario)
       if (annualProb === null) return null
       probNotDeveloped *= (1 - annualProb)

@@ -2,7 +2,9 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'fs'
 import { fileURLToPath } from 'url'
 import { dirname, join } from 'path'
-import { ParcelCalculator, MACRO_SCENARIOS } from '../src/parcelCalculator.js'
+import { ParcelCalculator } from '../src/parcelCalculator.js'
+import constructionCosts from '../src/data/construction-costs.json'
+import zillowRePrices from '../src/data/zillow-re-prices.json'
 import { parseNumericCSV } from '../src/helpers.js'
 
 describe('ParcelCalculator derivation functions', () => {
@@ -109,20 +111,18 @@ describe('ParcelCalculator with real parcel data', () => {
 })
 
 describe('ParcelCalculator model properties', () => {
-  it('MACRO_SCENARIOS covers 2026-2045', () => {
+  it('macro data covers 2026-2045', () => {
     for (let year = 2026; year <= 2045; year++) {
-      expect(MACRO_SCENARIOS[year]).toBeDefined()
-      expect(MACRO_SCENARIOS[year].construction_costs).toBeDefined()
-      expect(MACRO_SCENARIOS[year].zillow_re_prices.low).toBeDefined()
-      expect(MACRO_SCENARIOS[year].zillow_re_prices.high).toBeDefined()
+      expect(constructionCosts[year]).toBeDefined()
+      expect(zillowRePrices[year]).toBeDefined()
+      expect(zillowRePrices[year].low).toBeDefined()
+      expect(zillowRePrices[year].high).toBeDefined()
     }
   })
 
   it('high prices diverge from low prices after 2027', () => {
-    expect(MACRO_SCENARIOS[2027].zillow_re_prices.low)
-      .toBe(MACRO_SCENARIOS[2027].zillow_re_prices.high)
-    expect(MACRO_SCENARIOS[2028].zillow_re_prices.high)
-      .toBeGreaterThan(MACRO_SCENARIOS[2028].zillow_re_prices.low)
+    expect(zillowRePrices[2027].low).toBe(zillowRePrices[2027].high)
+    expect(zillowRePrices[2028].high).toBeGreaterThan(zillowRePrices[2028].low)
   })
 
   it('higher envelope produces more units', () => {
