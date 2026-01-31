@@ -773,7 +773,7 @@ onMounted(() => {
               v-model="newRule.proposedHeight"
               class="inline-input height-input"
               placeholder="ft"
-              aria-label="Height"
+              aria-label="Proposed height"
             />
             <span class="form-text">ft. for all parcels</span>
 
