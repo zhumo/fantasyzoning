@@ -33,14 +33,14 @@ test.describe('Rule Management', () => {
 
     test('save button is enabled with height', async ({ page }) => {
       await page.getByRole('button', { name: '+ Add Rule' }).click()
-      await page.getByLabel('Height').fill('85')
+      await page.getByLabel('Height', { exact: true }).fill('85')
       await expect(page.getByRole('button', { name: 'Save Rule' })).toBeEnabled()
     })
   })
 
   test('adds a rule and displays it', async ({ page }) => {
     await page.getByRole('button', { name: '+ Add Rule' }).click()
-    await page.getByLabel('Height').fill('85')
+    await page.getByLabel('Height', { exact: true }).fill('85')
     await page.getByRole('button', { name: 'Save Rule' }).click()
 
     await expect(page.getByText('85 ft')).toBeVisible()
@@ -48,7 +48,7 @@ test.describe('Rule Management', () => {
 
   test('adds rule with neighborhood filter', async ({ page }) => {
     await page.getByRole('button', { name: '+ Add Rule' }).click()
-    await page.getByLabel('Height').fill('100')
+    await page.getByLabel('Height', { exact: true }).fill('100')
     await page.getByLabel('Neighborhood').selectOption('Mission')
     await page.getByRole('button', { name: 'Save Rule' }).click()
 
@@ -59,7 +59,7 @@ test.describe('Rule Management', () => {
 
   test('removes a rule', async ({ page }) => {
     await page.getByRole('button', { name: '+ Add Rule' }).click()
-    await page.getByLabel('Height').fill('65')
+    await page.getByLabel('Height', { exact: true }).fill('65')
     await page.getByRole('button', { name: 'Save Rule' }).click()
 
     const ruleItem = page.locator('.rule-item').filter({ hasText: '65 ft' })
@@ -71,7 +71,7 @@ test.describe('Rule Management', () => {
 
   test('edits an existing rule', async ({ page }) => {
     await page.getByRole('button', { name: '+ Add Rule' }).click()
-    await page.getByLabel('Height').fill('65')
+    await page.getByLabel('Height', { exact: true }).fill('65')
     await page.getByRole('button', { name: 'Save Rule' }).click()
 
     const ruleItem = page.locator('.rule-item').filter({ hasText: '65 ft' })
@@ -80,7 +80,7 @@ test.describe('Rule Management', () => {
     await ruleItem.click()
     await expect(page.getByRole('heading', { name: 'Edit Rule' })).toBeVisible()
 
-    await page.getByLabel('Height').fill('120')
+    await page.getByLabel('Height', { exact: true }).fill('120')
     await page.getByRole('button', { name: 'Update Rule' }).click()
 
     await expect(page.locator('.rule-item').filter({ hasText: '120 ft' })).toBeVisible()
@@ -91,12 +91,99 @@ test.describe('Rule Management', () => {
     await expect(yourPlanRow.getByText('29,148')).toBeVisible()
 
     await page.getByRole('button', { name: '+ Add Rule' }).click()
-    await page.getByLabel('Height').fill('200')
+    await page.getByLabel('Height', { exact: true }).fill('200')
     await page.getByRole('button', { name: 'Save Rule' }).click()
 
     await expect(page.locator('.rule-item').filter({ hasText: '200 ft' })).toBeVisible()
 
     const lowCell = yourPlanRow.locator('td').nth(1)
     await expect(lowCell).not.toHaveText('29,148')
+  })
+
+  test('adds rule with all filters', async ({ page }) => {
+    await page.getByRole('button', { name: '+ Add Rule' }).click()
+    await expect(page.getByRole('heading', { name: 'Add Rule' })).toBeVisible()
+    await page.getByLabel('Height', { exact: true }).fill('130')
+    await page.getByLabel('Neighborhood').selectOption('Mission')
+    await page.getByLabel('Zoning code').selectOption('RH-2')
+    await page.getByLabel('FZP height').selectOption('40 ft')
+    await page.getByRole('button', { name: 'Save Rule' }).click()
+
+    const ruleItem = page.locator('.rule-item').filter({ hasText: '130 ft' })
+    await expect(ruleItem).toBeVisible()
+    await expect(ruleItem).toContainText('Mission')
+    await expect(ruleItem).toContainText('RH-2')
+    await expect(ruleItem).toContainText('40 ft')
+  })
+
+  test('tallest height wins when rules overlap', async ({ page }) => {
+    await page.getByRole('button', { name: '+ Add Rule' }).click()
+    await expect(page.getByRole('heading', { name: 'Add Rule' })).toBeVisible()
+    await page.getByLabel('Height', { exact: true }).fill('85')
+    await page.getByLabel('Neighborhood').selectOption('Mission')
+    await page.getByRole('button', { name: 'Save Rule' }).click()
+    await expect(page.locator('.rule-item').filter({ hasText: '85 ft' })).toBeVisible()
+
+    await page.getByRole('button', { name: '+ Add Rule' }).click()
+    await expect(page.getByRole('heading', { name: 'Add Rule' })).toBeVisible()
+    await page.getByLabel('Height', { exact: true }).fill('130')
+    await page.getByLabel('Neighborhood').selectOption('Mission')
+    await page.getByRole('button', { name: 'Save Rule' }).click()
+    await expect(page.locator('.rule-item').filter({ hasText: '130 ft' })).toBeVisible()
+
+    const yourPlanRow = page.getByRole('row', { name: /Your Plan/ })
+    const lowCellAfterBoth = await yourPlanRow.locator('td').nth(1).textContent()
+
+    await page.locator('.rule-item').filter({ hasText: '130 ft' }).getByRole('button', { name: '×' }).click()
+    await expect(page.locator('.rule-item').filter({ hasText: '130 ft' })).not.toBeVisible()
+
+    const lowCellAfterRemove = await yourPlanRow.locator('td').nth(1).textContent()
+    expect(parseInt(lowCellAfterRemove.replace(/,/g, ''))).toBeLessThan(parseInt(lowCellAfterBoth.replace(/,/g, '')))
+  })
+
+  test('deleting all rules restores baseline projections', async ({ page }) => {
+    const yourPlanRow = page.getByRole('row', { name: /Your Plan/ })
+    await expect(yourPlanRow.getByText('29,148')).toBeVisible()
+
+    await page.getByRole('button', { name: '+ Add Rule' }).click()
+    await page.getByLabel('Height', { exact: true }).fill('200')
+    await page.getByRole('button', { name: 'Save Rule' }).click()
+    const ruleItem = page.locator('.rule-item').filter({ hasText: '200 ft' })
+    await expect(ruleItem).toBeVisible()
+
+    const lowCellAfterAdd = yourPlanRow.locator('td').nth(1)
+    await expect(lowCellAfterAdd).not.toHaveText('29,148')
+
+    await ruleItem.getByRole('button', { name: '×' }).click()
+    await expect(ruleItem).not.toBeVisible()
+
+    await expect(yourPlanRow.getByText('29,148')).toBeVisible()
+  })
+
+  test('map loads data before interaction', async ({ page }) => {
+    await expect(page.locator('.map-loading-overlay')).not.toBeVisible()
+    await expect(page.locator('.map-container canvas')).toBeVisible()
+  })
+
+  test('editing rule updates projections', async ({ page }) => {
+    const yourPlanRow = page.getByRole('row', { name: /Your Plan/ })
+    await expect(yourPlanRow.getByText('29,148')).toBeVisible()
+
+    await page.getByRole('button', { name: '+ Add Rule' }).click()
+    await page.getByLabel('Height', { exact: true }).fill('85')
+    await page.getByRole('button', { name: 'Save Rule' }).click()
+    await expect(page.locator('.rule-item').filter({ hasText: '85 ft' })).toBeVisible()
+
+    const lowCellAfterAdd = await yourPlanRow.locator('td').nth(1).textContent()
+
+    await page.locator('.rule-item').filter({ hasText: '85 ft' }).click()
+    await expect(page.getByRole('heading', { name: 'Edit Rule' })).toBeVisible()
+    await page.getByLabel('Height', { exact: true }).fill('200')
+    await page.getByRole('button', { name: 'Update Rule' }).click()
+
+    await expect(page.locator('.rule-item').filter({ hasText: '200 ft' })).toBeVisible()
+
+    const lowCellAfterEdit = await yourPlanRow.locator('td').nth(1).textContent()
+    expect(parseInt(lowCellAfterEdit.replace(/,/g, ''))).toBeGreaterThan(parseInt(lowCellAfterAdd.replace(/,/g, '')))
   })
 })

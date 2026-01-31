@@ -3,21 +3,33 @@ import { test, expect } from '@playwright/test'
 test.describe('Parcel hover tooltip', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/')
-    await expect(page.locator('.map-container canvas')).toBeVisible()
+    await expect(page.locator('.map-loading-overlay')).not.toBeVisible()
   })
 
   test('hovering over parcel shows tooltip', async ({ page }) => {
     const mapContainer = page.locator('.map-container')
     const box = await mapContainer.boundingBox()
 
-    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
-    await page.waitForTimeout(500)
-
     const tooltip = page.locator('.tooltip')
-    const isVisible = await tooltip.isVisible().catch(() => false)
+    const positions = [
+      { x: box.x + box.width * 0.5, y: box.y + box.height * 0.5 },
+      { x: box.x + box.width * 0.4, y: box.y + box.height * 0.4 },
+      { x: box.x + box.width * 0.6, y: box.y + box.height * 0.6 },
+      { x: box.x + box.width * 0.3, y: box.y + box.height * 0.5 },
+      { x: box.x + box.width * 0.7, y: box.y + box.height * 0.5 },
+    ]
 
-    if (isVisible) {
-      await expect(tooltip).toContainText(/Address|Neighborhood|Zoning/)
+    for (const pos of positions) {
+      await page.mouse.move(pos.x, pos.y)
+      try {
+        await expect(tooltip).toBeVisible({ timeout: 2000 })
+        await expect(tooltip).toContainText(/Address|Neighborhood|Zoning/)
+        return
+      } catch {
+        continue
+      }
     }
+
+    throw new Error('Tooltip did not appear after hovering at multiple map positions')
   })
 })
