@@ -1,10 +1,3 @@
-export const SDB_ENVELOPE_THRESHOLD = 9.0
-export const SDB_HEIGHT_CAP = 130
-
-export function computeSdbQualification(envelope, height) {
-  return envelope > SDB_ENVELOPE_THRESHOLD && height <= SDB_HEIGHT_CAP ? 1 : 0
-}
-
 export function parseCSVLine(line) {
   const values = []
   let current = ''
