@@ -811,6 +811,7 @@ onMounted(() => {
                 step="100"
                 class="inline-input distance-input"
                 placeholder="ft"
+                aria-label="Transit distance"
               />
               <span class="form-text">ft of a transit stop</span>
             </div>
