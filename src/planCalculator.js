@@ -1,6 +1,7 @@
 import { ParcelCalculator } from './parcelCalculator.js'
 
 export class PlanCalculator {
+  // TODO: Have the parcels be read out of one csv file.
   constructor(parcels) {
     this.parcels = parcels
   }
