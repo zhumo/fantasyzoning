@@ -24,18 +24,16 @@ test.describe('Rule Management', () => {
   test('adds a naked rule', async ({ page }) => {
     await page.getByRole('button', { name: '+ Add Rule' }).click()
     const modal = page.locator('.modal')
-    // CLAUDE: expect modal to be visible here
+    await expect(modal.getByRole('heading', { name: 'Add Rule' })).toBeVisible()
     await modal.getByLabel('Proposed height').fill('85')
     await modal.getByRole('button', { name: 'Save Rule' }).click()
-    //CLAUDE: expect modal to no longer be visible
+    await expect(modal).not.toBeVisible()
 
-    //CLAUDE: scope this down to the rules section. 
-    // const rulesSection = page.locator(...)
-    // expect(rulesSection.locator(".rule-item (or whatever)").count).to == 1
-    // const newRuleItem = rulesSection.locator(".rule-item.adfasdf")
-    // expect(ruleItem.asdf).to eq("85 ft")
-    // etc etc etc
-    await expect(page.getByText('85 ft')).toBeVisible()
+    const rulesSection = page.locator('.rules-section')
+    await expect(rulesSection.locator('.rule-item')).toHaveCount(1)
+
+    const ruleItem = rulesSection.locator('.rule-item').first()
+    await expect(ruleItem).toContainText('85 ft')
   })
 
   test('adds rule with neighborhood filter', async ({ page }) => {
@@ -58,13 +56,14 @@ test.describe('Rule Management', () => {
     await modal.getByLabel('Neighborhood').selectOption('Mission')
     await modal.getByLabel('Zoning code').selectOption('RH-2')
     await modal.getByLabel('FZP height').selectOption('40 ft')
-    //CCLAUDE: Add the transit one. Make sure this is up to date.
+    await modal.getByLabel('Transit distance').fill('2640')
     await modal.getByRole('button', { name: 'Save Rule' }).click()
 
     const ruleItem = page.locator('.rule-item').first()
     await expect(ruleItem).toContainText('Mission')
     await expect(ruleItem).toContainText('RH-2')
     await expect(ruleItem).toContainText('40ft FZP')
+    await expect(ruleItem).toContainText('within 2640ft of transit')
     await expect(ruleItem).toContainText('130 ft')
   })
 
