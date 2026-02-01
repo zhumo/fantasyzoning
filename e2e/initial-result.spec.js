@@ -6,7 +6,6 @@ test.describe('On load behavior', () => {
   })
 
   test('map loads data before interaction', async ({ page }) => {
-    // CLAUDE: What is this testing for?
     await expect(page.locator('.map-loading-overlay')).not.toBeVisible()
     await expect(page.locator('.map-container canvas')).toBeVisible()
   })
