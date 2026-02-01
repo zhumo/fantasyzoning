@@ -773,7 +773,7 @@ onMounted(() => {
               v-model="newRule.proposedHeight"
               class="inline-input height-input"
               placeholder="ft"
-              aria-label="Height"
+              aria-label="Proposed height"
             />
             <span class="form-text">ft. for all parcels</span>
 
@@ -787,7 +787,7 @@ onMounted(() => {
 
             <div class="criteria-row">
               <span class="form-text">with zoning code</span>
-              <select v-model="newRule.zoningCode" class="inline-select">
+              <select v-model="newRule.zoningCode" class="inline-select" aria-label="Zoning code">
                 <option value="">any</option>
                 <option v-for="z in ZONING_CODES" :key="z" :value="z">{{ z }}</option>
               </select>
@@ -795,7 +795,7 @@ onMounted(() => {
 
             <div class="criteria-row">
               <span class="form-text">and FZP height</span>
-              <select v-model="newRule.fzpHeight" class="inline-select">
+              <select v-model="newRule.fzpHeight" class="inline-select" aria-label="FZP height">
                 <option value="">any</option>
                 <option v-for="h in FZP_HEIGHTS" :key="h" :value="h">{{ h }} ft</option>
               </select>
