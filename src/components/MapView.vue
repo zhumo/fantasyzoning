@@ -2,11 +2,9 @@
 import { onMounted, ref, watch, computed } from 'vue';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
-import { ParcelCalculator } from '../parcelCalculator.js';
+import { PlanCalculator } from '../planCalculator.js';
 import {
   parseCSV,
-  ruleMatchesParcel,
-  getProposedHeight as getProposedHeightHelper,
   getParcelAddress,
   formatNumber,
 } from '../helpers.js';
@@ -24,9 +22,9 @@ const hoveredTransitStop = ref(null);
 const tooltipPosition = ref({ x: 0, y: 0 });
 
 const userRules = ref([]);
-const fzpZoningData = ref([]);
-const allParcelsData = ref([]);
-const parcelAttributes = ref(new Map());
+const parcels = ref([]);
+const planCalculator = ref(null);
+const planResults = ref({ totals: { low: 0, high: 0 }, parcelResults: new Map() });
 const yourPlanLow = ref(null);
 const yourPlanHigh = ref(null);
 const calculating = ref(false);
@@ -43,24 +41,13 @@ const newRule = ref({
 });
 
 const hoveredParcelStats = computed(() => {
-  if (!hoveredParcel.value || fzpZoningData.value.length === 0) return null;
-
-  const mapblklot = hoveredParcel.value.mapblklot;
-  const fzpParcel = fzpZoningData.value.find(p => String(p.BlockLot) === mapblklot);
-  if (!fzpParcel) return null;
-
-  const proposedHeight = parseFloat(hoveredParcel.value.effective_height) || parseFloat(hoveredParcel.value.Height_Ft) || 0;
-
-  const modifiedParcel = { ...fzpParcel };
-  if (proposedHeight > fzpParcel.Height_Ft) {
-    modifiedParcel.Height_Ft = proposedHeight;
-  }
-  const calc = new ParcelCalculator(modifiedParcel);
-
+  if (!hoveredParcel.value) return null;
+  const result = planResults.value.parcelResults.get(hoveredParcel.value.mapblklot);
+  if (!result) return null;
   return {
-    probLow: (calc.getProbabilityLow() * 100).toFixed(1),
-    probHigh: (calc.getProbabilityHigh() * 100).toFixed(1),
-    units: calc.getUnitsIfRedeveloped().toFixed(1)
+    probLow: (result.probabilityLow * 100).toFixed(1),
+    probHigh: (result.probabilityHigh * 100).toFixed(1),
+    units: result.unitsIfRedeveloped?.toFixed(1) ?? '0.0'
   };
 });
 
@@ -185,48 +172,12 @@ async function removeRule(ruleId) {
   });
 }
 
-function getProposedHeight(parcelAttrs) {
-  return getProposedHeightHelper(userRules.value, parcelAttrs);
-}
-
-function calcExpectedUnitsWithCache(parcel, height, scenario) {
-  const cacheKey = `${height}_${scenario}`;
-  if (parcel.unitsCache[cacheKey] !== undefined) {
-    return parcel.unitsCache[cacheKey];
-  }
-
-  const modifiedParcel = { ...parcel, Height_Ft: height };
-  const calc = new ParcelCalculator(modifiedParcel);
-  const result = scenario === 'low' ? calc.getExpectedUnitsLow() : calc.getExpectedUnitsHigh();
-  parcel.unitsCache[cacheKey] = result;
-  return result;
-}
-
 function recalculateProjections() {
-  if (allParcelsData.value.length === 0) return;
-
+  if (!planCalculator.value) return;
   calculating.value = true;
-
-  let totalLow = 0;
-  let totalHigh = 0;
-
-  for (const parcel of allParcelsData.value) {
-    const blockLot = String(parcel.BlockLot);
-    const attrs = parcelAttributes.value.get(blockLot) || {};
-    const proposedHeight = getProposedHeight(attrs);
-
-    if (proposedHeight !== null && proposedHeight > parcel.Height_Ft) {
-      totalLow += calcExpectedUnitsWithCache(parcel, proposedHeight, 'low');
-      totalHigh += calcExpectedUnitsWithCache(parcel, proposedHeight, 'high');
-    } else {
-      totalLow += parcel.fzp_expected_units_low;
-      totalHigh += parcel.fzp_expected_units_high;
-    }
-  }
-
-  yourPlanLow.value = Math.round(totalLow);
-  yourPlanHigh.value = Math.round(totalHigh);
-
+  planResults.value = planCalculator.value.calculate(userRules.value);
+  yourPlanLow.value = planResults.value.totals.low;
+  yourPlanHigh.value = planResults.value.totals.high;
   calculating.value = false;
 }
 
@@ -237,16 +188,8 @@ function updateMapColors() {
   const geojson = source._data;
 
   geojson.features.forEach(feature => {
-    const attrs = feature.properties;
-    const proposedHeight = getProposedHeight(attrs);
-    if (proposedHeight !== null) {
-      feature.properties.effective_height = Math.max(
-        proposedHeight,
-        parseFloat(attrs.Height_Ft) || 0
-      );
-    } else {
-      feature.properties.effective_height = parseFloat(attrs.Height_Ft) || 0;
-    }
+    const result = planResults.value.parcelResults.get(feature.properties.mapblklot);
+    feature.properties.effective_height = result?.effectiveHeight ?? (parseFloat(feature.properties.Height_Ft) || 0);
   });
 
   source.setData(geojson);
@@ -302,24 +245,27 @@ async function loadDataset() {
     'fzp_expected_units_low', 'fzp_expected_units_high'
   ];
 
-  const parsedModelData = modelRows.map(row => {
-    const parcel = { BlockLot: row.BlockLot, unitsCache: {} };
-    MODEL_NUMERIC_COLS.forEach(col => {
-      parcel[col] = parseFloat(row[col]) || 0;
-    });
-    return parcel;
-  });
-  fzpZoningData.value = parsedModelData;
-
-  const modelLookup = new Map();
-  parsedModelData.forEach(p => modelLookup.set(p.BlockLot, p));
-
   const overlayMap = new Map();
   overlayData.forEach(row => {
     overlayMap.set(row.mapblklot, row);
   });
-  parcelAttributes.value = overlayMap;
-  allParcelsData.value = parsedModelData;
+
+  const mergedParcels = modelRows.map(row => {
+    const parcel = { BlockLot: row.BlockLot };
+    MODEL_NUMERIC_COLS.forEach(col => {
+      parcel[col] = parseFloat(row[col]) || 0;
+    });
+    const overlay = overlayMap.get(row.BlockLot);
+    if (overlay) {
+      Object.assign(parcel, overlay);
+    }
+    return parcel;
+  });
+  parcels.value = mergedParcels;
+  planCalculator.value = new PlanCalculator(mergedParcels);
+
+  const modelLookup = new Map();
+  mergedParcels.forEach(p => modelLookup.set(p.BlockLot, p));
 
   geometries.features.forEach(feature => {
     const mapblklot = feature.properties.mapblklot;
