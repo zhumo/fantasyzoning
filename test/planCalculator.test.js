@@ -82,13 +82,13 @@ describe('PlanCalculator.ruleMatchesParcel', () => {
 describe('PlanCalculator.getProposedHeight', () => {
   const calc = new PlanCalculator(parcels)
 
-  it('returns null when no rules', () => {
-    expect(calc.getProposedHeight([], parcel)).toBe(null)
+  it('returns FZP height when no rules', () => {
+    expect(calc.getProposedHeight([], parcel)).toBe(65)
   })
 
-  it('returns null when no rules match', () => {
+  it('returns FZP height when no rules match', () => {
     const rules = [{ proposedHeight: 85, neighborhood: 'SOMA' }]
-    expect(calc.getProposedHeight(rules, parcel)).toBe(null)
+    expect(calc.getProposedHeight(rules, parcel)).toBe(65)
   })
 
   it('returns height when single rule matches', () => {
