@@ -26,10 +26,10 @@ export class PlanCalculator {
   }
 
   getProposedHeight(rules, parcel) {
-    let maxHeight = null
+    let maxHeight = parcel.Height_Ft
     for (const rule of rules) {
       if (this.ruleMatchesParcel(rule, parcel)) {
-        if (maxHeight === null || rule.proposedHeight > maxHeight) {
+        if (rule.proposedHeight > maxHeight) {
           maxHeight = rule.proposedHeight
         }
       }
@@ -45,18 +45,16 @@ export class PlanCalculator {
     for (const parcel of this.parcels) {
       const mapblklot = String(parcel.BlockLot)
 
-      const proposedHeight = this.getProposedHeight(rules, parcel)
-      const effectiveHeight = (proposedHeight !== null && proposedHeight > parcel.Height_Ft)
-        ? proposedHeight
-        : parcel.Height_Ft
+      const effectiveHeight = this.getProposedHeight(rules, parcel)
+      const isUpzoned = effectiveHeight > parcel.Height_Ft
 
-      const modifiedParcel = effectiveHeight > parcel.Height_Ft
+      const modifiedParcel = isUpzoned
         ? { ...parcel, Height_Ft: effectiveHeight }
         : parcel
       const calc = new ParcelCalculator(modifiedParcel)
 
       let unitsLow, unitsHigh
-      if (effectiveHeight > parcel.Height_Ft) {
+      if (isUpzoned) {
         unitsLow = calc.getExpectedUnitsLow() ?? 0
         unitsHigh = calc.getExpectedUnitsHigh() ?? 0
       } else {
