@@ -5,6 +5,139 @@ import { dirname, join } from 'path'
 import { ParcelCalculator } from '../src/parcelCalculator.js'
 import { parseNumericCSV } from '../src/helpers.js'
 
+const BASELINE_PARCEL = {
+  Height_Ft: 65,
+  Area_1000: 5.5,
+  Bldg_SqFt_1000: 2.0,
+  Res_Dummy: 0,
+  Historic: 0,
+  Zoning_DR_EnvFull: 0,
+  zp_OfficeComm: 0,
+  zp_DRMulti_RTO: 0,
+  zp_FBDMulti_RTO: 0,
+  zp_PDRInd: 0,
+  zp_Public: 0,
+  zp_Redev: 0,
+  zp_RH2: 0,
+  zp_RH3_RM1: 0,
+  DIST_SBayshore: 0,
+  DIST_BernalHts: 0,
+  DIST_Scentral: 0,
+  DIST_Central: 0,
+  DIST_BuenaVista: 0,
+  DIST_Northeast: 0,
+  DIST_WestAddition: 0,
+  DIST_SOMA: 0,
+  DIST_InnerSunset: 0,
+  DIST_Richmond: 0,
+  DIST_Ingleside: 0,
+  DIST_OuterSunset: 0,
+  DIST_Marina: 0,
+  DIST_Mission: 0,
+}
+
+const HISTORIC_PARCEL = {
+  ...BASELINE_PARCEL,
+  Historic: 1,
+}
+
+const DR_ZONING_PARCEL = {
+  ...BASELINE_PARCEL,
+  Zoning_DR_EnvFull: 35.75,
+}
+
+const NON_SDB_PARCEL = {
+  ...BASELINE_PARCEL,
+  Height_Ft: 131,
+  Area_1000: 2.73,
+}
+
+describe('sigmoid', () => {
+  it('sigmoid(0) = 0.5', () => {
+    expect(ParcelCalculator.sigmoid(0)).toBe(0.5)
+  })
+
+  it('sigmoid approaches 0 for large negative z', () => {
+    expect(ParcelCalculator.sigmoid(-100)).toBeCloseTo(0, 10)
+  })
+
+  it('sigmoid approaches 1 for large positive z', () => {
+    expect(ParcelCalculator.sigmoid(100)).toBeCloseTo(1, 10)
+  })
+
+  it('sigmoid is monotonically increasing', () => {
+    expect(ParcelCalculator.sigmoid(1)).toBeGreaterThan(ParcelCalculator.sigmoid(0))
+    expect(ParcelCalculator.sigmoid(0)).toBeGreaterThan(ParcelCalculator.sigmoid(-1))
+  })
+})
+
+describe('ParcelCalculator null handling', () => {
+  it('calcAnnualProbability returns null for missing parcel field', () => {
+    const incomplete = { Height_Ft: 65, Area_1000: 5.5 }
+    const calc = new ParcelCalculator(incomplete)
+    expect(calc.calcAnnualProbability(2030, 'low')).toBeNull()
+  })
+
+  it('calcUnitsIfRedeveloped returns null for missing Zoning_DR_EnvFull', () => {
+    const incomplete = { Height_Ft: 65, Area_1000: 5.5 }
+    const calc = new ParcelCalculator(incomplete)
+    expect(calc.getUnitsIfRedeveloped()).toBeNull()
+  })
+
+  it('getExpectedUnitsLow returns null when probability is null', () => {
+    const incomplete = { Height_Ft: 65, Area_1000: 5.5 }
+    const calc = new ParcelCalculator(incomplete)
+    expect(calc.getExpectedUnitsLow()).toBeNull()
+  })
+
+  it('getExpectedUnitsHigh returns null when probability is null', () => {
+    const incomplete = { Height_Ft: 65, Area_1000: 5.5 }
+    const calc = new ParcelCalculator(incomplete)
+    expect(calc.getExpectedUnitsHigh()).toBeNull()
+  })
+})
+
+describe('ParcelCalculator with fixtures', () => {
+  it('calcUnitsIfRedeveloped for baseline parcel (SDB-eligible)', () => {
+    const calc = new ParcelCalculator(BASELINE_PARCEL)
+    expect(calc.getUnitsIfRedeveloped()).toBeCloseTo(30.8773, 2)
+  })
+
+  it('calcUnitsIfRedeveloped for non-SDB parcel', () => {
+    const calc = new ParcelCalculator(NON_SDB_PARCEL)
+    expect(calc.getUnitsIfRedeveloped()).toBeCloseTo(15.2064, 2)
+  })
+
+  it('DR zoning reduces units', () => {
+    const calc = new ParcelCalculator(DR_ZONING_PARCEL)
+    expect(calc.getUnitsIfRedeveloped()).toBeCloseTo(25.1530, 2)
+  })
+
+  it('historic parcels have lower probability than non-historic', () => {
+    const baseCalc = new ParcelCalculator(BASELINE_PARCEL)
+    const historicCalc = new ParcelCalculator(HISTORIC_PARCEL)
+    expect(historicCalc.getProbabilityLow()).toBeLessThan(baseCalc.getProbabilityLow())
+  })
+
+  it('higher envelope produces more units', () => {
+    const baseCalc = new ParcelCalculator(BASELINE_PARCEL)
+    const higherEnvelope = { ...BASELINE_PARCEL, Height_Ft: 130 }
+    const higherCalc = new ParcelCalculator(higherEnvelope)
+    expect(higherCalc.getUnitsIfRedeveloped()).toBeGreaterThan(baseCalc.getUnitsIfRedeveloped())
+  })
+
+  it('SDB parcels produce more units than non-SDB at same envelope', () => {
+    const sdbCalc = new ParcelCalculator(BASELINE_PARCEL)
+    const nonSdbCalc = new ParcelCalculator(NON_SDB_PARCEL)
+    expect(sdbCalc.getUnitsIfRedeveloped()).toBeGreaterThan(nonSdbCalc.getUnitsIfRedeveloped())
+  })
+
+  it('high scenario produces more expected units than low', () => {
+    const calc = new ParcelCalculator(BASELINE_PARCEL)
+    expect(calc.getExpectedUnitsHigh()).toBeGreaterThanOrEqual(calc.getExpectedUnitsLow())
+  })
+})
+
 describe('ParcelCalculator derivation functions', () => {
   it('computeEnvelope calculates correctly', () => {
     expect(ParcelCalculator.computeEnvelope({ Area_1000: 10, Height_Ft: 100 })).toBe(100)
