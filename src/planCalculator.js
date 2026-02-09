@@ -1,0 +1,83 @@
+import { ParcelCalculator } from './parcelCalculator.js'
+
+export class PlanCalculator {
+  // TODO: Have the parcels be read out of one csv file.
+  constructor(parcels) {
+    this.parcels = parcels
+  }
+
+  ruleMatchesParcel(rule, parcel) {
+    if (rule.neighborhood && parcel.analysis_neighborhood !== rule.neighborhood) {
+      return false
+    }
+    if (rule.zoningCode && (!parcel.zoning_code || !parcel.zoning_code.split('|').includes(rule.zoningCode))) {
+      return false
+    }
+    if (rule.fzpHeight && parcel.Height_Ft !== rule.fzpHeight) {
+      return false
+    }
+    if (rule.transitDistance) {
+      const distToTransit = parseFloat(parcel.distance_to_transit)
+      if (isNaN(distToTransit) || distToTransit > rule.transitDistance) {
+        return false
+      }
+    }
+    return true
+  }
+
+  getProposedHeight(rules, parcel) {
+    let maxHeight = parcel.Height_Ft
+    for (const rule of rules) {
+      if (this.ruleMatchesParcel(rule, parcel)) {
+        if (rule.proposedHeight > maxHeight) {
+          maxHeight = rule.proposedHeight
+        }
+      }
+    }
+    return maxHeight
+  }
+
+  calculate(rules) {
+    let totalLow = 0
+    let totalHigh = 0
+    const parcelResults = new Map()
+
+    for (const parcel of this.parcels) {
+      const mapblklot = String(parcel.BlockLot)
+
+      const effectiveHeight = this.getProposedHeight(rules, parcel)
+      const isUpzoned = effectiveHeight > parcel.Height_Ft
+
+      const modifiedParcel = isUpzoned
+        ? { ...parcel, Height_Ft: effectiveHeight }
+        : parcel
+      const calc = new ParcelCalculator(modifiedParcel)
+
+      let unitsLow, unitsHigh
+      if (isUpzoned) {
+        unitsLow = calc.getExpectedUnitsLow() ?? 0
+        unitsHigh = calc.getExpectedUnitsHigh() ?? 0
+      } else {
+        unitsLow = parcel.fzp_expected_units_low ?? 0
+        unitsHigh = parcel.fzp_expected_units_high ?? 0
+      }
+
+      totalLow += unitsLow
+      totalHigh += unitsHigh
+
+      parcelResults.set(mapblklot, {
+        effectiveHeight,
+        expectedUnitsLow: unitsLow,
+        expectedUnitsHigh: unitsHigh,
+        probabilityLow: calc.getProbabilityLow(),
+        probabilityHigh: calc.getProbabilityHigh(),
+        unitsIfRedeveloped: calc.getUnitsIfRedeveloped()
+      })
+    }
+
+    return {
+      totals: { low: Math.round(totalLow), high: Math.round(totalHigh) },
+      parcelResults
+    }
+  }
+}
