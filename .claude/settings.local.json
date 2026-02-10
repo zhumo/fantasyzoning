@@ -13,7 +13,8 @@
       "Bash(source ../.venv/bin/activate)",
       "Bash(cat:*)",
       "Bash(jupyter nbconvert:*)",
-      "Bash(npm run test:run:*)"
+      "Bash(npm run test:run:*)",
+      "Bash(npm test:*)"
     ],
     "deny": [],
     "ask": []
