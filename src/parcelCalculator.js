@@ -1,5 +1,4 @@
-import constructionCosts from './data/construction-costs.json'
-import zillowRePrices from './data/zillow-re-prices.json'
+import macroScenariosCSV from './data/macro-scenarios.csv?raw'
 import PROB_REG_WEIGHTS from './data/prob-reg-weights.json'
 import UNITS_REG_WEIGHTS from './data/units-reg-weights.json'
 
@@ -7,6 +6,24 @@ const SDB_ENVELOPE_THRESHOLD = 9.0
 const SDB_HEIGHT_CAP = 130
 
 const MACRO_FIELDS = ['Intercept', 'Const_Costs_Real', 'Zillow_Price_Real']
+
+function parseMacroScenariosCSV(csv) {
+  const lines = csv.trim().split('\n')
+  const scenarios = {}
+  for (let i = 1; i < lines.length; i++) {
+    const [year, costs, priceLow, priceHigh] = lines[i].split(',')
+    const yearNum = parseInt(year)
+    if (yearNum >= 2026 && yearNum <= 2045) {
+      scenarios[yearNum] = {
+        construction_costs: parseFloat(costs),
+        zillow_re_prices: { low: parseFloat(priceLow), high: parseFloat(priceHigh) }
+      }
+    }
+  }
+  return scenarios
+}
+
+export const MACRO_SCENARIOS = parseMacroScenariosCSV(macroScenariosCSV)
 
 export class ParcelCalculator {
   constructor(parcel) {
@@ -39,9 +56,12 @@ export class ParcelCalculator {
   }
 
   calcAnnualProbability(year, scenario) {
+    const macro = MACRO_SCENARIOS[year]
+    if (!macro) return null
+
     let z = PROB_REG_WEIGHTS.Intercept
-    z += PROB_REG_WEIGHTS.Const_Costs_Real * constructionCosts[year]
-    z += PROB_REG_WEIGHTS.Zillow_Price_Real * zillowRePrices[year][scenario]
+    z += PROB_REG_WEIGHTS.Const_Costs_Real * macro.construction_costs
+    z += PROB_REG_WEIGHTS.Zillow_Price_Real * macro.zillow_re_prices[scenario]
 
     for (const field of Object.keys(PROB_REG_WEIGHTS)) {
       if (MACRO_FIELDS.includes(field)) continue
@@ -54,7 +74,7 @@ export class ParcelCalculator {
 
   calc20YearProbability(scenario) {
     let probNotDeveloped = 1.0
-    for (const year in constructionCosts) {
+    for (const year in MACRO_SCENARIOS) {
       const annualProb = this.calcAnnualProbability(year, scenario)
       if (annualProb === null) return null
       probNotDeveloped *= (1 - annualProb)
