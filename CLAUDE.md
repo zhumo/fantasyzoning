@@ -33,6 +33,13 @@ npm run build
 
 Output will be in `dist/` directory, ready to deploy to any static hosting service (Netlify, Vercel, GitHub Pages, etc.).
 
+### Running Tests
+
+```bash
+npm test          # Run unit tests (Vitest)
+npm run test:e2e  # Run E2E tests (Playwright, auto-starts dev server)
+```
+
 ## Architecture
 
 ### Technology Stack
