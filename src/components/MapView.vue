@@ -3,6 +3,7 @@ import { onMounted, ref, watch, computed } from 'vue';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { ParcelCalculator } from '../parcelCalculator.js';
+import { recalculateProjections } from '../projectionCalculator.js';
 import {
   parseCSV,
   ruleMatchesParcel,
@@ -163,7 +164,7 @@ async function saveRule() {
     });
   }
 
-  recalculateProjections();
+  updateProjections();
   updateMapColors();
 
   savingRule.value = false;
@@ -177,7 +178,7 @@ async function removeRule(ruleId) {
 
   await new Promise(resolve => setTimeout(resolve, 0));
 
-  recalculateProjections();
+  updateProjections();
   updateMapColors();
 
   map.value.once('idle', () => {
@@ -189,44 +190,13 @@ function getProposedHeight(parcelAttrs) {
   return getProposedHeightHelper(userRules.value, parcelAttrs);
 }
 
-function calcExpectedUnitsWithCache(parcel, height, scenario) {
-  const cacheKey = `${height}_${scenario}`;
-  if (parcel.unitsCache[cacheKey] !== undefined) {
-    return parcel.unitsCache[cacheKey];
-  }
-
-  const modifiedParcel = { ...parcel, Height_Ft: height };
-  const calc = new ParcelCalculator(modifiedParcel);
-  const result = scenario === 'low' ? calc.getExpectedUnitsLow() : calc.getExpectedUnitsHigh();
-  parcel.unitsCache[cacheKey] = result;
-  return result;
-}
-
-function recalculateProjections() {
+async function updateProjections() {
   if (allParcelsData.value.length === 0) return;
-
   calculating.value = true;
-
-  let totalLow = 0;
-  let totalHigh = 0;
-
-  for (const parcel of allParcelsData.value) {
-    const blockLot = String(parcel.BlockLot);
-    const attrs = parcelAttributes.value.get(blockLot) || {};
-    const proposedHeight = getProposedHeight(attrs);
-
-    if (proposedHeight !== null && proposedHeight > parcel.Height_Ft) {
-      totalLow += calcExpectedUnitsWithCache(parcel, proposedHeight, 'low');
-      totalHigh += calcExpectedUnitsWithCache(parcel, proposedHeight, 'high');
-    } else {
-      totalLow += parcel.fzp_expected_units_low;
-      totalHigh += parcel.fzp_expected_units_high;
-    }
-  }
-
-  yourPlanLow.value = Math.round(totalLow);
-  yourPlanHigh.value = Math.round(totalHigh);
-
+  await new Promise(r => setTimeout(r, 0));
+  const result = recalculateProjections(allParcelsData.value, parcelAttributes.value, userRules.value);
+  yourPlanLow.value = result.low;
+  yourPlanHigh.value = result.high;
   calculating.value = false;
 }
 
@@ -472,7 +442,7 @@ async function loadDataset() {
 
   setupTransitInteractions();
   setupInteractions(geojson);
-  recalculateProjections();
+  updateProjections();
   loading.value = false;
 
   mapRendering.value = true;

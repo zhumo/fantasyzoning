@@ -1,0 +1,4 @@
+{
+  "fzp-baseline": { "meanMs": 64 },
+  "all-100ft": { "meanMs": 10244 }
+}
