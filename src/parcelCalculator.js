@@ -1,5 +1,4 @@
-import constructionCosts from './data/construction-costs.json'
-import zillowRePrices from './data/zillow-re-prices.json'
+import macroScenariosCSV from './data/macro-scenarios.csv?raw'
 import PROB_REG_WEIGHTS from './data/prob-reg-weights.json'
 import UNITS_REG_WEIGHTS from './data/units-reg-weights.json'
 
@@ -8,15 +7,23 @@ const SDB_HEIGHT_CAP = 130
 
 const MACRO_FIELDS = ['Intercept', 'Const_Costs_Real', 'Zillow_Price_Real']
 
-export const MACRO_SCENARIOS = Object.fromEntries(
-  Object.keys(constructionCosts).map(year => [
-    year,
-    {
-      construction_costs: constructionCosts[year],
-      zillow_re_prices: zillowRePrices[year]
+function parseMacroScenariosCSV(csv) {
+  const lines = csv.trim().split('\n')
+  const scenarios = {}
+  for (let i = 1; i < lines.length; i++) {
+    const [year, costs, priceLow, priceHigh] = lines[i].split(',')
+    const yearNum = parseInt(year)
+    if (yearNum >= 2026 && yearNum <= 2045) {
+      scenarios[yearNum] = {
+        construction_costs: parseFloat(costs),
+        zillow_re_prices: { low: parseFloat(priceLow), high: parseFloat(priceHigh) }
+      }
     }
-  ])
-)
+  }
+  return scenarios
+}
+
+export const MACRO_SCENARIOS = parseMacroScenariosCSV(macroScenariosCSV)
 
 export class ParcelCalculator {
   constructor(parcel) {
