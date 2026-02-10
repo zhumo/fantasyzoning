@@ -56,9 +56,12 @@ export class ParcelCalculator {
   }
 
   calcAnnualProbability(year, scenario) {
+    const macro = MACRO_SCENARIOS[year]
+    if (!macro) return null
+
     let z = PROB_REG_WEIGHTS.Intercept
-    z += PROB_REG_WEIGHTS.Const_Costs_Real * constructionCosts[year]
-    z += PROB_REG_WEIGHTS.Zillow_Price_Real * zillowRePrices[year][scenario]
+    z += PROB_REG_WEIGHTS.Const_Costs_Real * macro.construction_costs
+    z += PROB_REG_WEIGHTS.Zillow_Price_Real * macro.zillow_re_prices[scenario]
 
     for (const field of Object.keys(PROB_REG_WEIGHTS)) {
       if (MACRO_FIELDS.includes(field)) continue
@@ -71,7 +74,7 @@ export class ParcelCalculator {
 
   calc20YearProbability(scenario) {
     let probNotDeveloped = 1.0
-    for (const year in constructionCosts) {
+    for (const year in MACRO_SCENARIOS) {
       const annualProb = this.calcAnnualProbability(year, scenario)
       if (annualProb === null) return null
       probNotDeveloped *= (1 - annualProb)
