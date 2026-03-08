@@ -241,6 +241,47 @@ describe('ParcelCalculator with real parcel data', () => {
   })
 })
 
+describe('ParcelCalculator custom cost methods', () => {
+  it('getExpectedUnitsWithCost returns value for valid parcel', () => {
+    const calc = new ParcelCalculator(BASELINE_PARCEL)
+    const result = calc.getExpectedUnitsWithCost('low', 112.723)
+    expect(result).not.toBeNull()
+    expect(result).toBeGreaterThan(0)
+  })
+
+  it('lower construction cost increases expected units', () => {
+    const calc = new ParcelCalculator(BASELINE_PARCEL)
+    const baseCost = 112.723
+    const lowerCost = 100.0
+
+    const baseUnits = calc.getExpectedUnitsWithCost('low', baseCost)
+    const lowerCostUnits = calc.getExpectedUnitsWithCost('low', lowerCost)
+
+    expect(lowerCostUnits).toBeGreaterThan(baseUnits)
+  })
+
+  it('getExpectedUnitsWithCost at base cost matches getExpectedUnitsLow', () => {
+    const calc = new ParcelCalculator(BASELINE_PARCEL)
+    const withCost = calc.getExpectedUnitsWithCost('low', 112.723)
+    const standard = calc.getExpectedUnitsLow()
+
+    expect(withCost).toBeCloseTo(standard, 4)
+  })
+
+  it('calcAnnualProbabilityWithCost returns null for invalid year', () => {
+    const calc = new ParcelCalculator(BASELINE_PARCEL)
+    expect(calc.calcAnnualProbabilityWithCost(1900, 'low', 112.723)).toBeNull()
+  })
+
+  it('calc20YearProbabilityWithCost increases with lower costs', () => {
+    const calc = new ParcelCalculator(BASELINE_PARCEL)
+    const highCostProb = calc.calc20YearProbabilityWithCost('low', 120)
+    const lowCostProb = calc.calc20YearProbabilityWithCost('low', 100)
+
+    expect(lowCostProb).toBeGreaterThan(highCostProb)
+  })
+})
+
 describe('ParcelCalculator model properties', () => {
   it('higher envelope produces more units', () => {
     const baseParcel = parcels.find(p => p.Env_1000_Area_Height > 0 && p.Env_1000_Area_Height < 50)

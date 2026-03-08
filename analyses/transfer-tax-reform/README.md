@@ -61,10 +61,10 @@ Land value is approximately 2x the cost of construction in San Francisco. When a
 ## Running the Analysis
 
 ```bash
-node analyses/transfer-tax-reform/analysis.mjs [path-to-expected-values-csv]
+npx vite-node analyses/transfer-tax-reform/analysis.mjs [path-to-expected-values-csv]
 ```
 
-See `analysis.mjs` for the full implementation.
+The script uses `vite-node` to support importing from the main `src/parcelCalculator.js` module.
 
 ## Data Requirements
 

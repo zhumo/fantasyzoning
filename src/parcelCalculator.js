@@ -119,4 +119,38 @@ export class ParcelCalculator {
     if (prob === null || units === null) return null
     return prob * units
   }
+
+  calcAnnualProbabilityWithCost(year, scenario, customCost) {
+    const macro = MACRO_SCENARIOS[year]
+    if (!macro) return null
+
+    let z = PROB_REG_WEIGHTS.Intercept
+    z += PROB_REG_WEIGHTS.Const_Costs_Real * customCost
+    z += PROB_REG_WEIGHTS.Zillow_Price_Real * macro.zillow_re_prices[scenario]
+
+    for (const field of Object.keys(PROB_REG_WEIGHTS)) {
+      if (MACRO_FIELDS.includes(field)) continue
+      if (this.prepared[field] === undefined) return null
+      z += PROB_REG_WEIGHTS[field] * this.prepared[field]
+    }
+
+    return ParcelCalculator.sigmoid(z)
+  }
+
+  calc20YearProbabilityWithCost(scenario, customCost) {
+    let probNotDeveloped = 1.0
+    for (const year in MACRO_SCENARIOS) {
+      const annualProb = this.calcAnnualProbabilityWithCost(year, scenario, customCost)
+      if (annualProb === null) return null
+      probNotDeveloped *= (1 - annualProb)
+    }
+    return 1 - probNotDeveloped
+  }
+
+  getExpectedUnitsWithCost(scenario, customCost) {
+    const prob = this.calc20YearProbabilityWithCost(scenario, customCost)
+    const units = this.getUnitsIfRedeveloped()
+    if (prob === null || units === null) return null
+    return prob * units
+  }
 }

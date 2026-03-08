@@ -31,3 +31,4 @@ __pycache__/
 *.sln
 *.sw?
 test-results/
+test/fixtures/
