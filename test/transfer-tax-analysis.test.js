@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll } from 'vitest'
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs'
 import { fileURLToPath } from 'url'
 import { dirname, join } from 'path'
-import { runAnalysis } from '../analyses/transfer-tax-reform/analysis.mjs'
+import { runAnalysis } from '../analyses/transfer-tax-reform/calculate-expected-units.mjs'
 import { parseNumericCSV } from '../src/helpers.js'
 
 const __filename = fileURLToPath(import.meta.url)
