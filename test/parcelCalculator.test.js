@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'fs'
 import { fileURLToPath } from 'url'
 import { dirname, join } from 'path'
-import { ParcelCalculator } from '../src/parcelCalculator.js'
+import { ParcelCalculator, MACRO_SCENARIOS } from '../src/parcelCalculator.js'
 import { parseNumericCSV } from '../src/helpers.js'
 
 const BASELINE_PARCEL = {
@@ -241,44 +241,56 @@ describe('ParcelCalculator with real parcel data', () => {
   })
 })
 
-describe('ParcelCalculator custom cost methods', () => {
-  it('getExpectedUnitsWithCost returns value for valid parcel', () => {
-    const calc = new ParcelCalculator(BASELINE_PARCEL)
-    const result = calc.getExpectedUnitsWithCost('low', 112.723)
+function createMacroScenariosWithCost(customCost) {
+  const modified = {}
+  for (const year in MACRO_SCENARIOS) {
+    modified[year] = {
+      ...MACRO_SCENARIOS[year],
+      construction_costs: customCost
+    }
+  }
+  return modified
+}
+
+describe('ParcelCalculator with custom macro scenarios', () => {
+  it('accepts custom macro scenarios in constructor', () => {
+    const customMacro = createMacroScenariosWithCost(100)
+    const calc = new ParcelCalculator(BASELINE_PARCEL, customMacro)
+    const result = calc.getExpectedUnitsLow()
     expect(result).not.toBeNull()
     expect(result).toBeGreaterThan(0)
   })
 
   it('lower construction cost increases expected units', () => {
-    const calc = new ParcelCalculator(BASELINE_PARCEL)
-    const baseCost = 112.723
-    const lowerCost = 100.0
+    const baseMacro = createMacroScenariosWithCost(112.723)
+    const lowerMacro = createMacroScenariosWithCost(100.0)
 
-    const baseUnits = calc.getExpectedUnitsWithCost('low', baseCost)
-    const lowerCostUnits = calc.getExpectedUnitsWithCost('low', lowerCost)
+    const baseCalc = new ParcelCalculator(BASELINE_PARCEL, baseMacro)
+    const lowerCalc = new ParcelCalculator(BASELINE_PARCEL, lowerMacro)
 
-    expect(lowerCostUnits).toBeGreaterThan(baseUnits)
+    expect(lowerCalc.getExpectedUnitsLow()).toBeGreaterThan(baseCalc.getExpectedUnitsLow())
   })
 
-  it('getExpectedUnitsWithCost at base cost matches getExpectedUnitsLow', () => {
-    const calc = new ParcelCalculator(BASELINE_PARCEL)
-    const withCost = calc.getExpectedUnitsWithCost('low', 112.723)
-    const standard = calc.getExpectedUnitsLow()
+  it('default macro scenarios match explicit base cost', () => {
+    const defaultCalc = new ParcelCalculator(BASELINE_PARCEL)
+    const explicitCalc = new ParcelCalculator(BASELINE_PARCEL, MACRO_SCENARIOS)
 
-    expect(withCost).toBeCloseTo(standard, 4)
+    expect(explicitCalc.getExpectedUnitsLow()).toBeCloseTo(defaultCalc.getExpectedUnitsLow(), 4)
   })
 
-  it('calcAnnualProbabilityWithCost returns null for invalid year', () => {
+  it('calcAnnualProbability returns null for year not in macro scenarios', () => {
     const calc = new ParcelCalculator(BASELINE_PARCEL)
-    expect(calc.calcAnnualProbabilityWithCost(1900, 'low', 112.723)).toBeNull()
+    expect(calc.calcAnnualProbability(1900, 'low')).toBeNull()
   })
 
-  it('calc20YearProbabilityWithCost increases with lower costs', () => {
-    const calc = new ParcelCalculator(BASELINE_PARCEL)
-    const highCostProb = calc.calc20YearProbabilityWithCost('low', 120)
-    const lowCostProb = calc.calc20YearProbabilityWithCost('low', 100)
+  it('lower costs increase probability', () => {
+    const highCostMacro = createMacroScenariosWithCost(120)
+    const lowCostMacro = createMacroScenariosWithCost(100)
 
-    expect(lowCostProb).toBeGreaterThan(highCostProb)
+    const highCostCalc = new ParcelCalculator(BASELINE_PARCEL, highCostMacro)
+    const lowCostCalc = new ParcelCalculator(BASELINE_PARCEL, lowCostMacro)
+
+    expect(lowCostCalc.getProbabilityLow()).toBeGreaterThan(highCostCalc.getProbabilityLow())
   })
 })
 

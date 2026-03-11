@@ -30,6 +30,17 @@ function getTransferTaxRate(value) {
   return 0.005;
 }
 
+function createMacroScenariosWithCost(customCost) {
+  const modified = {};
+  for (const year in MACRO_SCENARIOS) {
+    modified[year] = {
+      ...MACRO_SCENARIOS[year],
+      construction_costs: customCost
+    };
+  }
+  return modified;
+}
+
 function parseCSV(text) {
   const lines = text.trim().split('\n');
   const headers = lines[0].split(',');
@@ -62,17 +73,18 @@ export function runAnalysis(expectedValuesPath) {
     const parcelData = { BlockLot: row.BlockLot };
     for (const c of MODEL_COLS) parcelData[c] = parseFloat(row[c]) || 0;
 
-    const calc = new ParcelCalculator(parcelData);
-
-    origLow += calc.getExpectedUnitsLow() || 0;
-    origHigh += calc.getExpectedUnitsHigh() || 0;
+    const origCalc = new ParcelCalculator(parcelData);
+    origLow += origCalc.getExpectedUnitsLow() || 0;
+    origHigh += origCalc.getExpectedUnitsHigh() || 0;
 
     const totalValue = mapblklotValues.get(row.BlockLot) || 0;
     const taxRate = getTransferTaxRate(totalValue);
     const adjustedCost = BASE_COST * (1 - taxRate * MULTIPLIER);
+    const adjustedMacro = createMacroScenariosWithCost(adjustedCost);
 
-    dynLow += calc.getExpectedUnitsWithCost('low', adjustedCost) || 0;
-    dynHigh += calc.getExpectedUnitsWithCost('high', adjustedCost) || 0;
+    const dynCalc = new ParcelCalculator(parcelData, adjustedMacro);
+    dynLow += dynCalc.getExpectedUnitsLow() || 0;
+    dynHigh += dynCalc.getExpectedUnitsHigh() || 0;
   }
 
   return {
