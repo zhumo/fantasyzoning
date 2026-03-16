@@ -15,7 +15,6 @@ dist-ssr
 # Large data files (too big for GitHub)
 data/active-and-retired-parcels.csv
 data/land-use.csv
-analyses/*/output.csv
 
 # Python
 __pycache__/
