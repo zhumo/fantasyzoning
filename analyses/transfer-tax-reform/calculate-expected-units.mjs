@@ -6,9 +6,6 @@ import { ParcelCalculator, MACRO_SCENARIOS } from '../../src/parcelCalculator.js
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const projectRoot = join(__dirname, '../..');
 
-const BASE_CONTR_COST = 112.723;
-const TAX_TO_CONSTR_COST_MULTIPLIER = 2;
-
 const MODEL_COLS = [
   'Height_Ft', 'Area_1000', 'Env_1000_Area_Height', 'Bldg_SqFt_1000',
   'Res_Dummy', 'Historic', 'SDB_2016_5Plus',
@@ -20,15 +17,6 @@ const MODEL_COLS = [
   'DIST_Marina', 'DIST_Mission',
   'SDB_2016_5Plus_EnvFull', 'Zoning_DR_EnvFull'
 ];
-
-function getTransferTaxRate(value) {
-  if (value >= 25000000) return 0.06;
-  if (value >= 10000000) return 0.055;
-  if (value >= 5000000) return 0.0225;
-  if (value >= 1000000) return 0.0075;
-  if (value >= 250001) return 0.0068;
-  return 0.005;
-}
 
 function createMacroScenariosWithCost(customCost) {
   const modified = {};
@@ -52,17 +40,15 @@ function parseCSV(text) {
   });
 }
 
-export function runAnalysis(expectedValuesPath) {
-  const valuesText = readFileSync(expectedValuesPath, 'utf-8');
-  const valuesRows = parseCSV(valuesText);
+export function runAnalysis(adjustedCostsPath) {
+  const costsText = readFileSync(adjustedCostsPath, 'utf-8');
+  const costsRows = parseCSV(costsText);
 
-  const mapblklotValues = new Map();
-  for (const row of valuesRows) {
-    const mapblklot = row.parcel_number.substring(0, 7);
-    const value = parseFloat(row.expected_value) || 0;
-    mapblklotValues.set(mapblklot, (mapblklotValues.get(mapblklot) || 0) + value);
+  const mapblklotCosts = new Map();
+  for (const row of costsRows) {
+    mapblklotCosts.set(row.mapblklot, parseFloat(row.adjusted_construction_cost));
   }
-  console.error(`Aggregated ${valuesRows.length} blklots into ${mapblklotValues.size} mapblklots`);
+  console.error(`Loaded adjusted costs for ${mapblklotCosts.size} mapblklots`);
 
   const modelText = readFileSync(join(projectRoot, 'public/data/parcels-model.csv'), 'utf-8');
   const modelRows = parseCSV(modelText);
@@ -77,14 +63,16 @@ export function runAnalysis(expectedValuesPath) {
     origLow += origCalc.getExpectedUnitsLow() || 0;
     origHigh += origCalc.getExpectedUnitsHigh() || 0;
 
-    const totalValue = mapblklotValues.get(row.BlockLot) || 0;
-    const taxRate = getTransferTaxRate(totalValue);
-    const adjustedCost = BASE_CONSTR_COST * (1 - taxRate * TAX_TO_CONSTR_COST_MULTIPLIER);
-    const adjustedMacro = createMacroScenariosWithCost(adjustedCost);
-
-    const dynCalc = new ParcelCalculator(parcelData, adjustedMacro);
-    dynLow += dynCalc.getExpectedUnitsLow() || 0;
-    dynHigh += dynCalc.getExpectedUnitsHigh() || 0;
+    const adjustedCost = mapblklotCosts.get(row.BlockLot);
+    if (adjustedCost) {
+      const adjustedMacro = createMacroScenariosWithCost(adjustedCost);
+      const dynCalc = new ParcelCalculator(parcelData, adjustedMacro);
+      dynLow += dynCalc.getExpectedUnitsLow() || 0;
+      dynHigh += dynCalc.getExpectedUnitsHigh() || 0;
+    } else {
+      dynLow += origCalc.getExpectedUnitsLow() || 0;
+      dynHigh += origCalc.getExpectedUnitsHigh() || 0;
+    }
   }
 
   return {
@@ -100,7 +88,11 @@ export function runAnalysis(expectedValuesPath) {
 }
 
 {
-  const expectedValuesPath = process.argv[2] || join(projectRoot, 'sf_all_parcels_expected_values_v4.csv');
-  const results = runAnalysis(expectedValuesPath);
+  const adjustedCostsPath = process.argv[2];
+  if (!adjustedCostsPath) {
+    console.error('Usage: npx vite-node calculate-expected-units.mjs <adjusted-costs.csv>');
+    process.exit(1);
+  }
+  const results = runAnalysis(adjustedCostsPath);
   console.log(JSON.stringify(results));
 }
