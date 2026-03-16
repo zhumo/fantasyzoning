@@ -62,7 +62,7 @@ export function runAnalysis(expectedValuesPath) {
     const value = parseFloat(row.expected_value) || 0;
     mapblklotValues.set(mapblklot, (mapblklotValues.get(mapblklot) || 0) + value);
   }
-  console.log(`Aggregated ${valuesRows.length} blklots into ${mapblklotValues.size} mapblklots`);
+  console.error(`Aggregated ${valuesRows.length} blklots into ${mapblklotValues.size} mapblklots`);
 
   const modelText = readFileSync(join(projectRoot, 'public/data/parcels-model.csv'), 'utf-8');
   const modelRows = parseCSV(modelText);
@@ -99,24 +99,34 @@ export function runAnalysis(expectedValuesPath) {
   };
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
-  const expectedValuesPath = process.argv[2] || join(projectRoot, 'sf_all_parcels_expected_values_v4.csv');
-  console.log('Loading expected values from:', expectedValuesPath);
+{
+  const args = process.argv.slice(2);
+  const jsonMode = args.includes('--json');
+  const pathArgs = args.filter(a => a !== '--json');
+  const expectedValuesPath = pathArgs[0] || join(projectRoot, 'sf_all_parcels_expected_values_v4.csv');
+
+  if (!jsonMode) {
+    console.log('Loading expected values from:', expectedValuesPath);
+  }
 
   const results = runAnalysis(expectedValuesPath);
 
-  console.log('');
-  console.log('=== Results ===');
-  console.log('');
-  console.log('Original (no reform):');
-  console.log(`  Low:  ${results.original.low} units`);
-  console.log(`  High: ${results.original.high} units`);
-  console.log('');
-  console.log('With Transfer Tax Reform:');
-  console.log(`  Low:  ${results.withReform.low} units`);
-  console.log(`  High: ${results.withReform.high} units`);
-  console.log('');
-  console.log('Difference:');
-  console.log(`  Low:  +${results.difference.low} units (+${results.difference.lowPct}%)`);
-  console.log(`  High: +${results.difference.high} units (+${results.difference.highPct}%)`);
+  if (jsonMode) {
+    console.log(JSON.stringify(results));
+  } else {
+    console.log('');
+    console.log('=== Results ===');
+    console.log('');
+    console.log('Original (no reform):');
+    console.log(`  Low:  ${results.original.low} units`);
+    console.log(`  High: ${results.original.high} units`);
+    console.log('');
+    console.log('With Transfer Tax Reform:');
+    console.log(`  Low:  ${results.withReform.low} units`);
+    console.log(`  High: ${results.withReform.high} units`);
+    console.log('');
+    console.log('Difference:');
+    console.log(`  Low:  +${results.difference.low} units (+${results.difference.lowPct}%)`);
+    console.log(`  High: +${results.difference.high} units (+${results.difference.highPct}%)`);
+  }
 }
