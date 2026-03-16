@@ -6,7 +6,7 @@ For info on the data sources, see the root readme.
 - [] Document the data better. Sources, columns, funkiness.
 - [] Fix the documented funkiness.
 - [] More clearly delineate schools, parks, hospitals, etc. that are realistically out of bounds for this exercise.
-- [] Include MUNI stops in the map.
+- [x] Include MUNI stops in the map.
 - [] Currently, we are copying and pasting the data into web/public/ to be served. There should be a cleaner way to do this. Really, that data should be hosted on a CDN.
 
 # Funky Stuff
