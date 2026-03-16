@@ -6,8 +6,8 @@ import { ParcelCalculator, MACRO_SCENARIOS } from '../../src/parcelCalculator.js
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const projectRoot = join(__dirname, '../..');
 
-const BASE_COST = 112.723;
-const MULTIPLIER = 2;
+const BASE_CONTR_COST = 112.723;
+const TAX_TO_CONSTR_COST_MULTIPLIER = 2;
 
 const MODEL_COLS = [
   'Height_Ft', 'Area_1000', 'Env_1000_Area_Height', 'Bldg_SqFt_1000',
@@ -79,7 +79,7 @@ export function runAnalysis(expectedValuesPath) {
 
     const totalValue = mapblklotValues.get(row.BlockLot) || 0;
     const taxRate = getTransferTaxRate(totalValue);
-    const adjustedCost = BASE_COST * (1 - taxRate * MULTIPLIER);
+    const adjustedCost = BASE_CONSTR_COST * (1 - taxRate * TAX_TO_CONSTR_COST_MULTIPLIER);
     const adjustedMacro = createMacroScenariosWithCost(adjustedCost);
 
     const dynCalc = new ParcelCalculator(parcelData, adjustedMacro);
