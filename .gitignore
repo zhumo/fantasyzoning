@@ -19,6 +19,7 @@ data/land-use.csv
 # Python
 __pycache__/
 *.pyc
+.venv/
 
 # Editor directories and files
 .vscode/*
