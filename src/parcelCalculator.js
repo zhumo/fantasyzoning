@@ -26,8 +26,9 @@ function parseMacroScenariosCSV(csv) {
 export const MACRO_SCENARIOS = parseMacroScenariosCSV(macroScenariosCSV)
 
 export class ParcelCalculator {
-  constructor(parcel) {
+  constructor(parcel, macroScenarios = MACRO_SCENARIOS) {
     this.prepared = ParcelCalculator.prepareParcel(parcel)
+    this.macroScenarios = macroScenarios
   }
 
   static computeEnvelope(parcel) {
@@ -56,7 +57,7 @@ export class ParcelCalculator {
   }
 
   calcAnnualProbability(year, scenario) {
-    const macro = MACRO_SCENARIOS[year]
+    const macro = this.macroScenarios[year]
     if (!macro) return null
 
     let z = PROB_REG_WEIGHTS.Intercept
@@ -74,7 +75,7 @@ export class ParcelCalculator {
 
   calc20YearProbability(scenario) {
     let probNotDeveloped = 1.0
-    for (const year in MACRO_SCENARIOS) {
+    for (const year in this.macroScenarios) {
       const annualProb = this.calcAnnualProbability(year, scenario)
       if (annualProb === null) return null
       probNotDeveloped *= (1 - annualProb)

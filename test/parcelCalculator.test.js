@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'fs'
 import { fileURLToPath } from 'url'
 import { dirname, join } from 'path'
-import { ParcelCalculator } from '../src/parcelCalculator.js'
+import { ParcelCalculator, MACRO_SCENARIOS } from '../src/parcelCalculator.js'
 import { parseNumericCSV } from '../src/helpers.js'
 
 const BASELINE_PARCEL = {
@@ -238,6 +238,46 @@ describe('ParcelCalculator with real parcel data', () => {
 
     expect(csvTotalLow).toBeGreaterThan(10000)
     expect(csvTotalHigh).toBeGreaterThan(csvTotalLow)
+  })
+})
+
+function createMacroScenariosWithCost(customCost) {
+  const modified = {}
+  for (const year in MACRO_SCENARIOS) {
+    modified[year] = {
+      ...MACRO_SCENARIOS[year],
+      construction_costs: customCost
+    }
+  }
+  return modified
+}
+
+describe('ParcelCalculator with custom macro scenarios', () => {
+  let baseCalc;
+  beforeEach(() => {
+    baseCalc = new ParcelCalculator(BASELINE_PARCEL)
+  })
+
+  describe('lower macro', () => {
+    it('lower construction cost increases expected units', () => {
+      const lowerMacro = createMacroScenariosWithCost(100.0)
+
+      const lowerCalc = new ParcelCalculator(BASELINE_PARCEL, lowerMacro)
+
+      expect(lowerCalc.getExpectedUnitsLow()).toBeGreaterThan(baseCalc.getExpectedUnitsLow())
+      expect(lowerCalc.getExpectedUnitsHigh()).toBeGreaterThan(baseCalc.getExpectedUnitsHigh())
+    })
+  })
+
+  describe('higher macro', () => {
+    it('lower costs increase probability', () => {
+      const highCostMacro = createMacroScenariosWithCost(200)
+
+      const higherCalc = new ParcelCalculator(BASELINE_PARCEL, highCostMacro)
+
+      expect(higherCalc.getExpectedUnitsLow()).toBeLessThan(baseCalc.getExpectedUnitsLow())
+      expect(higherCalc.getExpectedUnitsHigh()).toBeLessThan(baseCalc.getExpectedUnitsHigh())
+    })
   })
 })
 

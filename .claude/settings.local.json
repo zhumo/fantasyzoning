@@ -1,20 +1,6 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npm create:*)",
-      "Bash(npm install)",
-      "Bash(npm install:*)",
-      "Bash(git worktree add:*)",
-      "Bash(cd:*)",
-      "Bash(npm run build:*)",
-      "Bash(wc:*)",
-      "Bash(source .venv/bin/activate)",
-      "Bash(python3:*)",
-      "Bash(source ../.venv/bin/activate)",
-      "Bash(cat:*)",
-      "Bash(jupyter nbconvert:*)",
-      "Bash(npm run test:run:*)",
-      "Bash(npm test:*)"
     ],
     "deny": [],
     "ask": []
