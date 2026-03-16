@@ -100,33 +100,7 @@ export function runAnalysis(expectedValuesPath) {
 }
 
 {
-  const args = process.argv.slice(2);
-  const jsonMode = args.includes('--json');
-  const pathArgs = args.filter(a => a !== '--json');
-  const expectedValuesPath = pathArgs[0] || join(projectRoot, 'sf_all_parcels_expected_values_v4.csv');
-
-  if (!jsonMode) {
-    console.log('Loading expected values from:', expectedValuesPath);
-  }
-
+  const expectedValuesPath = process.argv[2] || join(projectRoot, 'sf_all_parcels_expected_values_v4.csv');
   const results = runAnalysis(expectedValuesPath);
-
-  if (jsonMode) {
-    console.log(JSON.stringify(results));
-  } else {
-    console.log('');
-    console.log('=== Results ===');
-    console.log('');
-    console.log('Original (no reform):');
-    console.log(`  Low:  ${results.original.low} units`);
-    console.log(`  High: ${results.original.high} units`);
-    console.log('');
-    console.log('With Transfer Tax Reform:');
-    console.log(`  Low:  ${results.withReform.low} units`);
-    console.log(`  High: ${results.withReform.high} units`);
-    console.log('');
-    console.log('Difference:');
-    console.log(`  Low:  +${results.difference.low} units (+${results.difference.lowPct}%)`);
-    console.log(`  High: +${results.difference.high} units (+${results.difference.highPct}%)`);
-  }
+  console.log(JSON.stringify(results));
 }
