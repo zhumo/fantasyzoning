@@ -2,6 +2,7 @@
   "permissions": {
     "allow": [
       "Bash(jupyter execute:*)",
+      "Bash(source venv/bin/activate)",
       "Bash(cd \"*fantasyzoning\" &&*)",
       "Bash(cd \"*fantasyzoning--*\" &&*)",
       "Bash(npm create:*)",
