@@ -1,3 +1,4 @@
 input.csv
 output.csv
 .venv/
+.ipynb_checkpoints/
