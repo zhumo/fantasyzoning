@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(jupyter execute:*)",
+      "Bash(source venv/bin/activate)",
+      "Bash(cd \"*fantasyzoning\" &&*)",
+      "Bash(cd \"*fantasyzoning--*\" &&*)",
+      "Bash(npm create:*)",
+      "Bash(npm install)",
+      "Bash(npm install:*)",
+      "Bash(npm run build:*)",
+      "Bash(npm run test:*)",
+      "Bash(wc:*)",
+      "Bash(source .venv/bin/activate)",
+      "Bash(python3:*)",
+      "Bash(jupyter nbconvert:*)"
+    ],
+    "ask" :[
+      "Bash(pip install:*)"
+    ]
+  },
+  "enabledPlugins": {
+    "js-rules@zhumo-plugins": true,
+    "typescript-lsp@claude-plugins-official": true
+  }
+}
