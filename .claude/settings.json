@@ -17,5 +17,9 @@
     "ask" :[
       "Bash(pip install:*)"
     ]
+  },
+  "enabledPlugins": {
+    "js-rules@zhumo-plugins": true,
+    "typescript-lsp@claude-plugins-official": true
   }
 }
