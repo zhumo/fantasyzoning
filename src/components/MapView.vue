@@ -2,10 +2,10 @@
 import { onMounted, ref, watch, computed } from 'vue';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
+import Papa from 'papaparse';
 import { ParcelCalculator } from '../parcelCalculator.js';
 import { recalculateProjections } from '../projectionCalculator.js';
 import {
-  parseCSV,
   ruleMatchesParcel,
   getProposedHeight as getProposedHeightHelper,
   getParcelAddress,
@@ -250,9 +250,9 @@ async function loadDataset() {
 
   const geometries = await geomResponse.json();
   const overlayText = await overlayResponse.text();
-  const overlayData = parseCSV(overlayText);
+  const overlayData = Papa.parse(overlayText, { header: true, skipEmptyLines: true }).data;
   const modelText = await modelResponse.text();
-  const modelRows = parseCSV(modelText);
+  const modelRows = Papa.parse(modelText, { header: true, skipEmptyLines: true }).data;
 
   const [bart, muni, caltrain] = await Promise.all([
     bartResponse.json(),

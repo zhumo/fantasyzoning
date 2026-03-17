@@ -14,8 +14,8 @@
     "test:benchmarks": "vitest bench --run --config bench/vitest.bench.config.js"
   },
   "dependencies": {
-    "csv-parse": "^6.1.0",
     "mapbox-gl": "^3.16.0",
+    "papaparse": "^5.5.3",
     "vue": "^3.5.24"
   },
   "devDependencies": {
