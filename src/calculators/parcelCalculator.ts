@@ -1,35 +1,14 @@
-import Papa from 'papaparse'
 import type { ParcelModel, PreparedParcel, MacroScenarios, Scenario } from '../types/parcel'
-import macroScenariosCSV from '../data/macro-scenarios.csv?raw'
+import { MACRO_SCENARIOS } from '../data/macroScenarios'
 import PROB_REG_WEIGHTS from '../data/prob-reg-weights.json'
 import UNITS_REG_WEIGHTS from '../data/units-reg-weights.json'
+
+export { MACRO_SCENARIOS }
 
 const SDB_ENVELOPE_THRESHOLD = 9.0
 const SDB_HEIGHT_CAP = 130
 
 const MACRO_FIELDS = ['Intercept', 'Const_Costs_Real', 'Zillow_Price_Real'] as const
-
-interface MacroRow {
-  'Model Year': number
-  'Construc_Costs_Real': number
-  'Price-Low Growth': number
-  'Price-High Growth': number
-}
-
-const parsed = Papa.parse<MacroRow>(macroScenariosCSV, {
-  header: true,
-  skipEmptyLines: true,
-  dynamicTyping: true
-}).data
-
-export const MACRO_SCENARIOS: MacroScenarios = Object.fromEntries(
-  parsed
-    .filter(row => row['Model Year'] >= 2026 && row['Model Year'] <= 2045)
-    .map(row => [row['Model Year'], {
-      construction_costs: row['Construc_Costs_Real'],
-      zillow_re_prices: { low: row['Price-Low Growth'], high: row['Price-High Growth'] }
-    }])
-)
 
 type ProbWeightKey = keyof typeof PROB_REG_WEIGHTS
 
