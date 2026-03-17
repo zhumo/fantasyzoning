@@ -3,7 +3,7 @@ import { readFileSync } from 'fs'
 import { fileURLToPath } from 'url'
 import { dirname, join } from 'path'
 import Papa from 'papaparse'
-import { ParcelCalculator, MACRO_SCENARIOS } from '../src/parcelCalculator.js'
+import { ParcelCalculator, MACRO_SCENARIOS } from '../src/calculators/parcelCalculator'
 
 const BASELINE_PARCEL = {
   Height_Ft: 65,
