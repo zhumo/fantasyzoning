@@ -1,4 +1,4 @@
-import type { ParcelModel, PreparedParcel, Scenario } from '../types/parcel'
+import type { ParcelModel, PreparedParcel } from '../types/parcel'
 import { MacroScenarios } from '../data/macroScenarios'
 import PROB_REG_WEIGHTS from '../data/prob-reg-weights.json'
 import UNITS_REG_WEIGHTS from '../data/units-reg-weights.json'
