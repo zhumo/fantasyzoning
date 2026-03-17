@@ -2,7 +2,7 @@ import { readFileSync } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { ParcelCalculator } from '../../src/calculators/parcelCalculator';
-import { MacroScenarios } from '../../src/data/macroScenarios';
+import { MACRO_SCENARIOS } from '../../src/data/macroScenarios';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const projectRoot = join(__dirname, '../..');
@@ -19,6 +19,16 @@ const MODEL_COLS = [
   'SDB_2016_5Plus_EnvFull', 'Zoning_DR_EnvFull'
 ];
 
+function createMacroScenariosWithCost(customCost) {
+  const modified = {};
+  for (const year in MACRO_SCENARIOS) {
+    modified[year] = {
+      ...MACRO_SCENARIOS[year],
+      construction_costs: customCost
+    };
+  }
+  return modified;
+}
 
 function parseCSV(text) {
   const lines = text.trim().split('\n');
@@ -56,7 +66,7 @@ export function runAnalysis(adjustedCostsPath) {
 
     const adjustedCost = mapblklotCosts.get(row.BlockLot);
     if (adjustedCost) {
-      const adjustedMacro = MacroScenarios.default.withConstructionCost(adjustedCost);
+      const adjustedMacro = createMacroScenariosWithCost(adjustedCost);
       const dynCalc = new ParcelCalculator(parcelData, adjustedMacro);
       dynLow += dynCalc.getExpectedUnitsLow() || 0;
       dynHigh += dynCalc.getExpectedUnitsHigh() || 0;

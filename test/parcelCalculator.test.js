@@ -4,7 +4,7 @@ import { fileURLToPath } from 'url'
 import { dirname, join } from 'path'
 import Papa from 'papaparse'
 import { ParcelCalculator } from '../src/calculators/parcelCalculator'
-import { MacroScenarios } from '../src/data/macroScenarios'
+import { MACRO_SCENARIOS } from '../src/data/macroScenarios'
 
 const BASELINE_PARCEL = {
   Height_Ft: 65,
@@ -242,6 +242,16 @@ describe('ParcelCalculator with real parcel data', () => {
   })
 })
 
+function createMacroScenariosWithCost(customCost) {
+  const modified = {}
+  for (const year in MACRO_SCENARIOS) {
+    modified[year] = {
+      ...MACRO_SCENARIOS[year],
+      construction_costs: customCost
+    }
+  }
+  return modified
+}
 
 describe('ParcelCalculator with custom macro scenarios', () => {
   let baseCalc;
@@ -251,7 +261,7 @@ describe('ParcelCalculator with custom macro scenarios', () => {
 
   describe('lower macro', () => {
     it('lower construction cost increases expected units', () => {
-      const lowerMacro = MacroScenarios.default.withConstructionCost(100.0)
+      const lowerMacro = createMacroScenariosWithCost(100.0)
 
       const lowerCalc = new ParcelCalculator(BASELINE_PARCEL, lowerMacro)
 
@@ -262,7 +272,7 @@ describe('ParcelCalculator with custom macro scenarios', () => {
 
   describe('higher macro', () => {
     it('lower costs increase probability', () => {
-      const highCostMacro = MacroScenarios.default.withConstructionCost(200)
+      const highCostMacro = createMacroScenariosWithCost(200)
 
       const higherCalc = new ParcelCalculator(BASELINE_PARCEL, highCostMacro)
 
