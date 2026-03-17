@@ -3,8 +3,6 @@ import { MACRO_SCENARIOS } from '../data/macroScenarios'
 import PROB_REG_WEIGHTS from '../data/prob-reg-weights.json'
 import UNITS_REG_WEIGHTS from '../data/units-reg-weights.json'
 
-export { MACRO_SCENARIOS }
-
 const SDB_ENVELOPE_THRESHOLD = 9.0
 const SDB_HEIGHT_CAP = 130
 
