@@ -58,8 +58,6 @@ export interface PreparedParcel extends Omit<ParcelModel, 'SDB_2016_5Plus' | 'SD
   SDB_2016_5Plus_EnvFull: number
 }
 
-export type Scenario = 'low' | 'high'
-
 export const MODEL_NUMERIC_COLS = [
   'Height_Ft', 'Area_1000', 'Env_1000_Area_Height', 'Bldg_SqFt_1000',
   'Res_Dummy', 'Historic', 'SDB_2016_5Plus',

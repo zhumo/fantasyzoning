@@ -9,6 +9,7 @@ const SDB_HEIGHT_CAP = 130
 const MACRO_FIELDS = ['Intercept', 'Const_Costs_Real', 'Zillow_Price_Real'] as const
 
 type ProbWeightKey = keyof typeof PROB_REG_WEIGHTS
+type Scenario = 'low' | 'high'
 
 export class ParcelCalculator {
   prepared: PreparedParcel
