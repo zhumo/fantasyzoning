@@ -1,5 +1,5 @@
 import type { ParcelModel, PreparedParcel, Scenario } from '../types/parcel'
-import { MACRO_SCENARIOS, type MacroScenarios } from '../data/macroScenarios'
+import { MacroScenarios } from '../data/macroScenarios'
 import PROB_REG_WEIGHTS from '../data/prob-reg-weights.json'
 import UNITS_REG_WEIGHTS from '../data/units-reg-weights.json'
 
@@ -14,7 +14,7 @@ export class ParcelCalculator {
   prepared: PreparedParcel
   macroScenarios: MacroScenarios
 
-  constructor(parcel: ParcelModel, macroScenarios: MacroScenarios = MACRO_SCENARIOS) {
+  constructor(parcel: ParcelModel, macroScenarios: MacroScenarios = MacroScenarios.default) {
     this.prepared = ParcelCalculator.prepareParcel(parcel)
     this.macroScenarios = macroScenarios
   }
@@ -45,7 +45,7 @@ export class ParcelCalculator {
   }
 
   calcAnnualProbability(year: number, scenario: Scenario): number | null {
-    const macro = this.macroScenarios[year]
+    const macro = this.macroScenarios.get(year)
     if (!macro) return null
 
     let z = PROB_REG_WEIGHTS.Intercept
@@ -64,8 +64,7 @@ export class ParcelCalculator {
 
   calc20YearProbability(scenario: Scenario): number | null {
     let probNotDeveloped = 1.0
-    for (const yearStr in this.macroScenarios) {
-      const year = Number(yearStr)
+    for (const year of this.macroScenarios.years()) {
       const annualProb = this.calcAnnualProbability(year, scenario)
       if (annualProb === null) return null
       probNotDeveloped *= (1 - annualProb)
