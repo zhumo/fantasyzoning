@@ -1,4 +1,4 @@
-import { ParcelCalculator } from './parcelCalculator.js'
+import { ParcelCalculator } from './calculators/parcelCalculator'
 import { getProposedHeight } from './helpers.js'
 
 function calcExpectedUnitsWithCache(parcel, height, scenario) {

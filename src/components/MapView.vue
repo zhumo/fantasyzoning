@@ -3,7 +3,7 @@ import { onMounted, ref, watch, computed } from 'vue';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import Papa from 'papaparse';
-import { ParcelCalculator } from '../parcelCalculator.js';
+import { ParcelCalculator } from '../calculators/parcelCalculator';
 import { recalculateProjections } from '../projectionCalculator.js';
 import {
   ruleMatchesParcel,

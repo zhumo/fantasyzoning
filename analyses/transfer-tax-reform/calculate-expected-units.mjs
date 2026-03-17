@@ -1,7 +1,8 @@
 import { readFileSync } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
-import { ParcelCalculator, MACRO_SCENARIOS } from '../../src/parcelCalculator.js';
+import { ParcelCalculator } from '../../src/calculators/parcelCalculator';
+import { MACRO_SCENARIOS } from '../../src/data/macroScenarios';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const projectRoot = join(__dirname, '../..');
