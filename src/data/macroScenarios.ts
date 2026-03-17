@@ -1,7 +1,7 @@
 import Papa from 'papaparse'
 import macroScenariosCSV from './macro-scenarios.csv?raw'
 
-export interface MacroScenario {
+interface MacroScenario {
   construction_costs: number
   zillow_re_prices: {
     low: number
