@@ -58,15 +58,6 @@ export interface PreparedParcel extends Omit<ParcelModel, 'SDB_2016_5Plus' | 'SD
   SDB_2016_5Plus_EnvFull: number
 }
 
-export interface MacroScenario {
-  construction_costs: number
-  zillow_re_prices: {
-    low: number
-    high: number
-  }
-}
-
-export type MacroScenarios = Record<number, MacroScenario>
 export type Scenario = 'low' | 'high'
 
 export const MODEL_NUMERIC_COLS = [

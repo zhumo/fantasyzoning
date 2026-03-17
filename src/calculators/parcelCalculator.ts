@@ -1,5 +1,5 @@
-import type { ParcelModel, PreparedParcel, MacroScenarios, Scenario } from '../types/parcel'
-import { MACRO_SCENARIOS } from '../data/macroScenarios'
+import type { ParcelModel, PreparedParcel, Scenario } from '../types/parcel'
+import { MACRO_SCENARIOS, type MacroScenarios } from '../data/macroScenarios'
 import PROB_REG_WEIGHTS from '../data/prob-reg-weights.json'
 import UNITS_REG_WEIGHTS from '../data/units-reg-weights.json'
 
