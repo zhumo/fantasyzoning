@@ -12,13 +12,15 @@ test.describe('Parcel hover tooltip', () => {
     const box = await canvas.boundingBox()
 
     // Mapbox renders parcels on canvas - try multiple positions to find one
-    // Map centers on SF at zoom 12, these ratios cover the visible parcel area
+    // Map centers on SF at zoom 12, these ratios target the dense downtown area
     const positions = [
+      { x: 0.55, y: 0.35 },
+      { x: 0.6, y: 0.4 },
+      { x: 0.5, y: 0.4 },
+      { x: 0.65, y: 0.45 },
+      { x: 0.55, y: 0.5 },
       { x: 0.5, y: 0.5 },
-      { x: 0.4, y: 0.4 },
-      { x: 0.6, y: 0.6 },
-      { x: 0.3, y: 0.5 },
-      { x: 0.7, y: 0.5 },
+      { x: 0.45, y: 0.45 },
     ]
 
     for (const pos of positions) {

@@ -14,7 +14,7 @@ test.describe('Rule Management', () => {
       // Modal does not allow you to save without the a height filled in
       await expect(page.getByRole('button', { name: 'Save Rule' })).toBeDisabled()
       const modal = page.locator('.modal')
-      await modal.getByLabel('Height').fill('85')
+      await modal.getByLabel('Proposed height').fill('85')
       await expect(modal.getByRole('button', { name: 'Save Rule' })).toBeEnabled()
 
       await modal.getByRole('button', { name: 'Cancel' }).click()
@@ -27,7 +27,7 @@ test.describe('Rule Management', () => {
       await page.getByRole('button', { name: '+ Add Rule' }).click()
       const modal = page.locator('.modal')
       await expect(modal.getByRole('heading', { name: 'Add Rule' })).toBeVisible()
-      await modal.getByLabel('Height').fill('85')
+      await modal.getByLabel('Proposed height').fill('85')
       await modal.getByRole('button', { name: 'Save Rule' }).click()
       await expect(modal).not.toBeVisible()
 
@@ -41,7 +41,7 @@ test.describe('Rule Management', () => {
     test('adds rule with neighborhood filter', async ({ page }) => {
       await page.getByRole('button', { name: '+ Add Rule' }).click()
       const modal = page.locator('.modal')
-      await modal.getByLabel('Height').fill('100')
+      await modal.getByLabel('Proposed height').fill('100')
       await modal.getByLabel('Neighborhood').selectOption('Mission')
       await modal.getByRole('button', { name: 'Save Rule' }).click()
 
@@ -53,7 +53,7 @@ test.describe('Rule Management', () => {
     test('adds rule with zoning code filter', async ({ page }) => {
       await page.getByRole('button', { name: '+ Add Rule' }).click()
       const modal = page.locator('.modal')
-      await modal.getByLabel('Height').fill('85')
+      await modal.getByLabel('Proposed height').fill('85')
       await modal.getByText('with zoning code').locator('..').getByRole('combobox').selectOption('RH-2')
       await modal.getByRole('button', { name: 'Save Rule' }).click()
 
@@ -66,7 +66,7 @@ test.describe('Rule Management', () => {
       await page.getByRole('button', { name: '+ Add Rule' }).click()
       const modal = page.locator('.modal')
       await expect(modal.getByRole('heading', { name: 'Add Rule' })).toBeVisible()
-      await modal.getByLabel('Height').fill('120')
+      await modal.getByLabel('Proposed height').fill('120')
       await modal.getByText('and FZP height').locator('..').getByRole('combobox').selectOption('40 ft')
       await modal.getByRole('button', { name: 'Save Rule' }).click()
       await expect(modal).not.toBeVisible()
@@ -80,7 +80,7 @@ test.describe('Rule Management', () => {
       await page.getByRole('button', { name: '+ Add Rule' }).click()
       const modal = page.locator('.modal')
       await expect(modal.getByRole('heading', { name: 'Add Rule' })).toBeVisible()
-      await modal.getByLabel('Height').fill('150')
+      await modal.getByLabel('Proposed height').fill('150')
       await modal.getByText('within').locator('..').getByRole('spinbutton').fill('1320')
       await modal.getByRole('button', { name: 'Save Rule' }).click()
 
@@ -93,7 +93,7 @@ test.describe('Rule Management', () => {
       await page.getByRole('button', { name: '+ Add Rule' }).click()
       const modal = page.locator('.modal')
       await expect(modal.getByRole('heading', { name: 'Add Rule' })).toBeVisible()
-      await modal.getByLabel('Height').fill('130')
+      await modal.getByLabel('Proposed height').fill('130')
       await modal.getByLabel('Neighborhood').selectOption('Mission')
       await modal.getByText('with zoning code').locator('..').getByRole('combobox').selectOption('RH-2')
       await modal.getByText('and FZP height').locator('..').getByRole('combobox').selectOption('40 ft')
@@ -112,12 +112,12 @@ test.describe('Rule Management', () => {
       const modal = page.locator('.modal')
 
       await page.getByRole('button', { name: '+ Add Rule' }).click()
-      await modal.getByLabel('Height').fill('85')
+      await modal.getByLabel('Proposed height').fill('85')
       await modal.getByLabel('Neighborhood').selectOption('Mission')
       await modal.getByRole('button', { name: 'Save Rule' }).click()
 
       await page.getByRole('button', { name: '+ Add Rule' }).click()
-      await modal.getByLabel('Height').fill('120')
+      await modal.getByLabel('Proposed height').fill('120')
       await modal.getByText('with zoning code').locator('..').getByRole('combobox').selectOption('RH-3')
       await modal.getByRole('button', { name: 'Save Rule' }).click()
 
@@ -137,7 +137,7 @@ test.describe('Rule Management', () => {
 
       await page.getByRole('button', { name: '+ Add Rule' }).click()
       const modal = page.locator('.modal')
-      await modal.getByLabel('Height').fill('200')
+      await modal.getByLabel('Proposed height').fill('200')
       await modal.getByRole('button', { name: 'Save Rule' }).click()
 
       await expect(page.locator('.rule-item').filter({ hasText: '200 ft' })).toBeVisible()
@@ -151,7 +151,7 @@ test.describe('Rule Management', () => {
     test.beforeEach(async ({ page }) => {
       await page.getByRole('button', { name: '+ Add Rule' }).click()
       const modal = page.locator('.modal')
-      await modal.getByLabel('Height').fill('65')
+      await modal.getByLabel('Proposed height').fill('65')
       await modal.getByRole('button', { name: 'Save Rule' }).click()
       await expect(page.locator('.rule-item').filter({ hasText: '65 ft' })).toBeVisible()
       await expect(page.locator('.map-loading-overlay')).not.toBeVisible()
@@ -170,7 +170,7 @@ test.describe('Rule Management', () => {
       await ruleItem.click()
       await expect(modal.getByRole('heading', { name: 'Edit Rule' })).toBeVisible()
 
-      await modal.getByLabel('Height').fill('120')
+      await modal.getByLabel('Proposed height').fill('120')
       await modal.getByRole('button', { name: 'Update Rule' }).click()
 
       await expect(page.locator('.rule-item').filter({ hasText: '120 ft' })).toBeVisible()
@@ -196,7 +196,7 @@ test.describe('Rule Management', () => {
 
       await page.locator('.rule-item').filter({ hasText: '65 ft' }).click()
       await expect(modal.getByRole('heading', { name: 'Edit Rule' })).toBeVisible()
-      await modal.getByLabel('Height').fill('200')
+      await modal.getByLabel('Proposed height').fill('200')
       await modal.getByRole('button', { name: 'Update Rule' }).click()
 
       await expect(page.locator('.rule-item').filter({ hasText: '200 ft' })).toBeVisible()

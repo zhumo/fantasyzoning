@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'fs'
 import { fileURLToPath } from 'url'
 import { dirname, join } from 'path'
+import Papa from 'papaparse'
 import { ParcelCalculator, MACRO_SCENARIOS } from '../src/parcelCalculator.js'
-import { parseNumericCSV } from '../src/helpers.js'
 
 const BASELINE_PARCEL = {
   Height_Ft: 65,
@@ -173,7 +173,7 @@ const __dirname = dirname(__filename)
 function loadParcelsModel() {
   const csvPath = join(__dirname, '../public/data/parcels-model.csv')
   const content = readFileSync(csvPath, 'utf-8')
-  return parseNumericCSV(content)
+  return Papa.parse(content, { header: true, skipEmptyLines: true, dynamicTyping: true }).data
 }
 
 const parcels = loadParcelsModel()

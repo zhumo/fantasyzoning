@@ -1,3 +1,4 @@
+import Papa from 'papaparse'
 import macroScenariosCSV from './data/macro-scenarios.csv?raw'
 import PROB_REG_WEIGHTS from './data/prob-reg-weights.json'
 import UNITS_REG_WEIGHTS from './data/units-reg-weights.json'
@@ -7,23 +8,22 @@ const SDB_HEIGHT_CAP = 130
 
 const MACRO_FIELDS = ['Intercept', 'Const_Costs_Real', 'Zillow_Price_Real']
 
-function parseMacroScenariosCSV(csv) {
-  const lines = csv.trim().split('\n')
-  const scenarios = {}
-  for (let i = 1; i < lines.length; i++) {
-    const [year, costs, priceLow, priceHigh] = lines[i].split(',')
-    const yearNum = parseInt(year)
-    if (yearNum >= 2026 && yearNum <= 2045) {
-      scenarios[yearNum] = {
-        construction_costs: parseFloat(costs),
-        zillow_re_prices: { low: parseFloat(priceLow), high: parseFloat(priceHigh) }
-      }
-    }
-  }
-  return scenarios
-}
+const parsed = Papa.parse(macroScenariosCSV, {
+  header: true,
+  skipEmptyLines: true,
+  dynamicTyping: true
+}).data
 
-export const MACRO_SCENARIOS = parseMacroScenariosCSV(macroScenariosCSV)
+// CSV contains historical data (2000-2025) and projections (2026-2045).
+// Model uses only the 20-year projection window for probability calculation.
+export const MACRO_SCENARIOS = Object.fromEntries(
+  parsed
+    .filter(row => row['Model Year'] >= 2026 && row['Model Year'] <= 2045)
+    .map(row => [row['Model Year'], {
+      construction_costs: row['Construc_Costs_Real'],
+      zillow_re_prices: { low: row['Price-Low Growth'], high: row['Price-High Growth'] }
+    }])
+)
 
 export class ParcelCalculator {
   constructor(parcel, macroScenarios = MACRO_SCENARIOS) {
